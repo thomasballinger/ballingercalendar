@@ -7,6 +7,7 @@ import os, sys, optparse
 sys.path = ['/projects/schiz/ra/tomb/python']+sys.path+['/projects/schiz/ra/tomb/scripts']
 import datetime, parse
 import spreadsheetTask as task
+import calendarHours as hours
 origDir = os.getcwd()
 scriptFile = os.path.abspath(__file__)
 scriptDir = os.path.basename(scriptFile)
@@ -38,6 +39,7 @@ class EditTasksCLI(cmd.Cmd):
 
     def do_task(self, arg):
         if arg:
+            arg = arg.replace('_',' ')
             l = [x for x in self.taskList if x.name == arg]
             if not l:
                 print('no such task')
@@ -51,15 +53,17 @@ class EditTasksCLI(cmd.Cmd):
 
     def complete_task(self, text, line, beginindex, endindex):
         if not text:
-            return [x.name for x in [t.name for t in self.taskList]]
+            a = [x.name.replace(' ','_') for x in self.taskList]
+            return a
         else:
-            return [x.name for x in [t.name for t in self.taskList] if x.name.startswith(text)]
+            a = [x.name.replace(' ','_') for x in [t for t in self.taskList if t.name.replace(' ','_').startswith(text)]]
+            return a
 
     def do_rename(self,arg):
         if not self.selectedTask:
             print('choose a task first')
             return
-        self.selectedTask.isCompleted = True
+        self.selectedTask.name = arg.replace('_',' ')
         self.selectedTask.put()
 
     def do_newtask(self,arg):
@@ -68,9 +72,8 @@ class EditTasksCLI(cmd.Cmd):
             if not arg:
                 print('nm')
                 return False
-        t = task.newTask(arg)
+        t = task.newTask(arg.replace('_',' '))
         self.selectedTask = t
-        self.selectedTask.put()
 
     def do_description(self, arg):
         if not self.selectedTask:
@@ -92,7 +95,7 @@ class EditTasksCLI(cmd.Cmd):
         time = parse.parseDate(arg)
         self.selectedTask.duedate = time
         print 'due date:',time
-        task.saveTask(self.selectedTask)
+        self.selectedTask.put()
 
     def do_assigner(self, arg):
         if not self.selectedTask:
@@ -102,6 +105,16 @@ class EditTasksCLI(cmd.Cmd):
             print 'assigner:',self.selectedTask.assigner
             return
         self.selectedTask.assigner = arg
+        self.selectedTask.put()
+
+    def do_whose(self, arg):
+        if not self.selectedTask:
+            print('choose a task first')
+            return
+        if not arg:
+            print 'whose:',self.selectedTask.whose
+            return
+        self.selectedTask.whose = arg
         self.selectedTask.put()
 
     def do_priority(self, arg):
@@ -122,12 +135,12 @@ class EditTasksCLI(cmd.Cmd):
             print('choose a task first')
             return
         if not arg:
-            print 'estimated time:',self.selectedTask.estimatedTime
+            print 'estimated time:',self.selectedTask.estimatedtime
             return
         timedelta = parse.parseTimedelta(arg)
-        self.selectedTask.estimatedTime = timedelta
+        self.selectedTask.estimatedtime = timedelta
         self.selectedTask.put()
-        print 'estimated time:',self.selectedTask.estimatedTime
+        print 'estimated time:',self.selectedTask.estimatedtime
 
     def do_timeSpent(self, arg):
         if not self.selectedTask:
@@ -173,14 +186,14 @@ class EditTasksCLI(cmd.Cmd):
         if not self.selectedTask:
             print('choose a task first')
             return
-        self.selectedTask.isComplete = False
+        self.selectedTask.isCompleted= False
         self.selectedTask.put()
 
     def do_complete(self, arg):
         if not self.selectedTask:
             print('choose a task first')
             return
-        self.selectedTask.isComplete = True
+        self.selectedTask.isCompleted= True
         self.selectedTask.put()
 
     def do_showCurrentTask(self, arg):
@@ -189,7 +202,9 @@ class EditTasksCLI(cmd.Cmd):
             return
         t = self.selectedTask
         print(t.name)
-        for (label,prop) in zip(['desc:','due:','assigned by:','priority:','time estimate:','time spent','start time','waits','is appointment:','is complete:'],[t.description, t.duedate, t.assigner, t.priority, t.estimatedTime, t.timeSpent, t.startTime, t.waits, t.isAppointment, t.isCompleted]):
+        for (label,prop) in zip(
+        ['desc:','due:','assigned by:','priority:','time estimate:','time spent','start time','waits','is appointment:','is complete:'],
+        [t.description, t.duedate, t.assigner, t.priority, t.estimatedtime, t.timespent, t.starttime, t.waitids, t.isAppointment, t.isCompleted]):
             if prop:
                 print label,prop
 
@@ -203,10 +218,16 @@ class EditTasksCLI(cmd.Cmd):
             self.selectedTask = None
 
     def do_listChronologicallyByDueDate(self, arg):
-        pprint(task.getTheStack(task.loadTasks()))
+        pprint(task.getTheStack(self.taskList))
 
     def do_listOverdue(self, arg):
-        pprint([t for t in self.taskList if t.duedate < datetime.datetime.now()])
+        pprint([t for t in self.taskList if t.duedate < datetime.datetime.now() and not t.isCompleted])
+
+    def do_listCompleted(self, arg):
+        pprint([t for t in self.taskList if t.isCompleted])
+
+    def do_listInProgress(self, arg):
+        pprint([t for t in self.taskList if not t.isCompleted])
 
     def do_graphTasks(self, arg):
         pass
@@ -214,6 +235,33 @@ class EditTasksCLI(cmd.Cmd):
     def do_workedOn(self, arg):
         "doesn't do anything yet"
         return parse.parseTimeInterval(arg)
+
+    def do_updateTimeSpent(self, arg):
+        if not self.selectedTask:
+            print 'select a task first'
+            return
+        self.selectedTask.timespent = hours.getHoursWorked(self.selectedTask.id)
+        print self.selectedTask.timespent
+        self.selectedTask.put()
+
+    def do_clockHours(self, arg):
+        if not self.selectedTask:
+            print 'select a task first'
+            return
+        if arg and len(arg.split()) % 2 == 0:
+            hours.clockTime(self.selectedTask.id,
+                            title=self.selectedTask.name,
+                            description=self.selectedTask.description,
+                            startDatetime=parse.parseTimeInterval(' '.join(arg.split()[:len(arg.split()/2)])), 
+                            endDatetime=parse.parseTimeInterval(' '.join(arg.split()[arg.split()/2:]))
+            )
+        else:
+            hours.clockTime(self.selectedTask.id, title=self.selectedTask.name, description=self.selectedTask.description)
+        print 'hours clocked'
+
+    def do_clear(self, arg):
+        for i in range(100):
+            print ''
 
 if __name__ == '__main__':
     cli = EditTasksCLI()

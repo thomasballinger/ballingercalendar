@@ -19,7 +19,7 @@ email = 'thomasballinger'
 password = 'tegdirbevoli'
 spreadsheet = 'tasks'
 worksheet = 'Sheet1'
-googleCalendarZero = datetime.datetime(1900,12,30)
+googleCalendarZero = datetime.datetime(1899,12,30)
 
 class Task:
     def __init__(self):
@@ -43,6 +43,10 @@ class Task:
     
     def __repr__(self):
         return 'task: '+self.name+' '+str(self.duedate)
+
+    def __cmp__(a,b):
+        td = b.duedate - a.duedate
+        return td.days * 24*60*60 + td.seconds
 
 def datetimeToGoogleNum(dt):
     #print dt,'of type',type(dt),'is the input to datetimeToGoogle'
@@ -149,6 +153,7 @@ def updateTask(task):
     if not task.row:
         raise NotImplementedError('Need to check to find first unused spot in spreadsheet')
 
+    print 'updating task',
     for col, prop in zip(propDict.values(), propDict.keys()):
         if prop in ['id', 'ID', 'Id']:
             value = task.id
@@ -184,8 +189,10 @@ def updateTask(task):
                 value = 'FALSE'
         else:
             print 'unknown property',prop,'in column',col
-        print 'now updating task',task.id,prop,'with value',value 
+        #print 'now updating task',task.id,prop,'with value',value
+        print '.',
         entry = gd_client.UpdateCell(row=task.row, col=col, inputValue=value, key=spreadsheetID, wksht_id=worksheetID)
+    print 'done'
 
 def getTasksIDs(gd_client):
     index = None
@@ -257,7 +264,7 @@ def newTask(name):
     maxid = '0'
     idRow = '0'
     for i, entry in enumerate(cellsFeed.entry):
-        if entry.cell.row == 1:
+        if entry.cell.row == '1':
             if entry.cell.inputValue in ['id', 'ID', 'Id']:
                 idRow = entry.cell.col
         else:
@@ -273,6 +280,7 @@ def newTask(name):
     task.id = id
     task.row = row
     task.put()
+    return task
 
 def displayTask(task):
     raise NotImplementedError('some sort of nice text display')
@@ -281,7 +289,7 @@ def updateTimeSpent(task):
     raise NotImplementedError('check google calendar for matching events')
 
 if __name__ == '__main__':
-    newTask('asdfdoSoafdmetsdafhingINteresting')
+    newTask('asdf asdfas dadsfati ng')
     taskList = createTasks()
     import pprint
     pprint.pprint(taskList)

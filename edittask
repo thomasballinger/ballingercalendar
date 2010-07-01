@@ -1,0 +1,214 @@
+#!/projects/schiz/software/LabPython/Python-2.6.3/python
+# edittask
+# being updated for use with better stuff
+# thomasballinger@gmail.com
+
+import os, sys, optparse
+sys.path = ['/projects/schiz/ra/tomb/python']+sys.path+['/projects/schiz/ra/tomb/scripts']
+import datetime, parse
+import spreadsheetTask as task
+origDir = os.getcwd()
+scriptFile = os.path.abspath(__file__)
+scriptDir = os.path.basename(scriptFile)
+import cmd
+from pprint import pprint
+
+class EditTasksCLI(cmd.Cmd):
+    def __init__(self):
+        cmd.Cmd.__init__(self)
+        self.prompt = ':) '
+        self.selectedTask = None
+        self.taskList = task.createTasks()
+
+    def do_updateLocalTasklist(self, arg):
+        self.taskList = task.createTasks()
+
+    def do_exit(self, arg):
+        sys.exit(0)
+
+    def do_quit(self, arg):
+        sys.exit(0)
+
+    def do_EOF(self, arg):
+        print('')
+        return True
+
+    def do_task(self, arg):
+        if arg:
+            l = [x for x in self.taskList if x.name == arg]
+            if not l:
+                print('no such task')
+                return
+            self.selectedTask = l[0]
+            print(self.selectedTask)
+        elif self.selectedTask:
+            print(self.selectedTask)
+        else:
+            print('select a task, or create a new one')
+
+    def complete_task(self, text, line, beginindex, endindex):
+        if not text:
+            return [x.name for x in [t.name for t in self.taskList]]
+        else:
+            return [x.name for x in [t.name for t in self.taskList] if x.name.startswith(text)]
+
+    def do_rename(self,arg):
+        if not self.selectedTask:
+            print('choose a task first')
+            return
+        self.selected
+
+    def do_newtask(self,arg):
+        if not arg:
+            arg = raw_input('task name:')
+            if not arg:
+                print('nm')
+                return False
+        t = task.newTask(arg)
+        self.selectedTask = t
+
+    def do_description(self, arg):
+        if not self.selectedTask:
+            print('choose a task first')
+            return
+        if not arg:
+            pprint('description:'+self.selectedTask.description)
+            return
+        self.selectedTask.description = arg
+        task.saveTask(self.selectedTask)
+
+    def do_due(self, arg):
+        if not self.selectedTask:
+            print('choose a task first')
+            return
+        if not arg:
+            print'due date:',self.selectedTask.dueDate
+            return
+        time = parse.parseDate(arg)
+        self.selectedTask.dueDate = time
+        print 'due date:',time
+        task.saveTask(self.selectedTask)
+
+    def do_assigner(self, arg):
+        if not self.selectedTask:
+            print('choose a task first')
+            return
+        if not arg:
+            print 'assigner:',self.selectedTask.assigner
+            return
+        self.selectedTask.assigner = arg
+        task.saveTask(self.selectedTask)
+
+    def do_priority(self, arg):
+        if not self.selectedTask:
+            print('choose a task first')
+            return
+        if not arg:
+            print 'priority:',self.selectedTask.priority
+            return
+        if not -1<int(arg)<10:
+            print('bad priority value')
+            return
+        self.selectedTask.priority = int(arg)
+        task.saveTask(self.selectedTask)
+
+    def do_estimatedTime (self, arg):
+        if not self.selectedTask:
+            print('choose a task first')
+            return
+        if not arg:
+            print 'estimated time:',self.selectedTask.estimatedTime
+            return
+        timedelta = parse.parseTimedelta(arg)
+        self.selectedTask.estimatedTime = timedelta
+        task.saveTask(self.selectedTask)
+        print 'estimated time:',self.selectedTask.estimatedTime
+
+    def do_timeSpent(self, arg):
+        if not self.selectedTask:
+            print('choose a task first')
+            return
+        if not arg:
+            print 'time spend:',self.selectedTask.timeSpent
+            return
+        interval = parse.parseTimeInterval(arg)
+        self.selectedTask.timeSpend.append()
+        task.saveTask(self.selectedTask)
+        print 'time spend:',self.selectedTask.timeSpent
+
+    def do_wait(self, arg):
+        if not self.selectedTask:
+            print('choose a task first')
+            return
+        if not arg:
+            print 'waits:',self.selectedTask.waits
+            return
+        self.selectedTask.waits.append(task.Wait())
+        self.selectedTask.waits[-1].whatFor = arg
+        task.saveTask(self.selectedTask)
+        print 'waits:',self.selectedTask.waits
+
+    def do_appointment(self, arg):
+        if not self.selectedTask:
+            print('choose a task first')
+            return
+        self.selectedTask.isAppointment = True
+        task.saveTask(self.selectedTask)
+        print 'task is now an appointment'
+
+    def do_notAppointment(self, arg):
+        if not self.selectedTask:
+            print('choose a task first')
+            return
+        self.selectedTask.isAppointment = False
+        task.saveTask(self.selectedTask)
+        print 'task is now not an appointment'
+
+    def do_notComplete(self, arg):
+        if not self.selectedTask:
+            print('choose a task first')
+            return
+        self.selectedTask.isComplete = False
+        task.saveTask(self.selectedTask)
+
+    def do_complete(self, arg):
+        if not self.selectedTask:
+            print('choose a task first')
+            return
+        self.selectedTask.isComplete = True
+        task.saveTask(self.selectedTask)
+
+    def do_showCurrentTask(self, arg):
+        if not self.selectedTask:
+            print 'select a task first'
+            return
+        t = self.selectedTask
+        print(t.name)
+        for (label,prop) in zip(['desc:','due:','assigned by:','priority:','time estimate:','time spent','start time','waits','is appointment:','is complete:'],[t.description, t.dueDate, t.assigner, t.priority, t.estimatedTime, t.timeSpent, t.startTime, t.waits, t.isAppointment, t.isCompleted]):
+            if prop:
+                print label,prop
+
+    def do_removeTask(self, arg):
+        if not self.selectedTask:
+            print 'select a task first'
+            return
+        check = parse.parseBoolean(raw_input('really delete task'+self.selectedTask.__repr__()+'?\n'))
+        if check:
+            task.removeTask(self.selectedTask)
+            self.selectedTask = None
+
+    def do_listChronologicallyByDueDate(self, arg):
+        pprint(task.getTheStack(task.loadTasks()))
+
+    def do_listOverdue(self, arg):
+        pprint([t for t in task.loadTasks() if t.dueDate < datetime.datetime.now()])
+
+    def do_graphTasks(self, arg):
+        pass
+
+    def do_workedOn(self, arg):
+        return parse.parseTimeInterval(arg)
+
+if __name__ == '__main__':
+    cli = EditTasksCLI()
+    cli.cmdloop()

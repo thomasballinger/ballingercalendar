@@ -235,11 +235,11 @@ def getTheStack(taskList):
     return taskList
 
 def importanceUrgencyGraph(taskList):
-    """Returns a list of [task,[dueDate, Importance]] items"""
-    firstDueDate = min([x.dueDate for x in taskList])
-    lastDueDate = max([x.dueDate for x in taskList])
-    now = min([x.dueDate for x in taskList])
-    return [[x.name,[x.dueDate,x.priority]] for x in taskList]
+    """Returns a list of [task,[duedate, Importance]] items"""
+    firstDueDate = min([x.duedate for x in taskList])
+    lastDueDate = max([x.duedate for x in taskList])
+    now = min([x.duedate for x in taskList])
+    return [[x.name,[x.duedate,x.priority]] for x in taskList]
 
 def deleteTask(task):
     raise NotImplementedError('delete that row, move everything up')

@@ -1,6 +1,6 @@
 #!/projects/schiz/software/LabPython/Python-2.6.3/python
 # edittask
-# being updated for use with better stuff
+# being updated for use with spreadsheet-based tasks
 # thomasballinger@gmail.com
 
 import os, sys, optparse
@@ -33,6 +33,9 @@ class EditTasksCLI(cmd.Cmd):
         print('')
         return True
 
+    def do_listtasks(self, arg):
+        print self.taskList
+
     def do_task(self, arg):
         if arg:
             l = [x for x in self.taskList if x.name == arg]
@@ -56,7 +59,8 @@ class EditTasksCLI(cmd.Cmd):
         if not self.selectedTask:
             print('choose a task first')
             return
-        self.selected
+        self.selectedTask.isCompleted = True
+        self.selectedTask.put()
 
     def do_newtask(self,arg):
         if not arg:
@@ -66,6 +70,7 @@ class EditTasksCLI(cmd.Cmd):
                 return False
         t = task.newTask(arg)
         self.selectedTask = t
+        self.selectedTask.put()
 
     def do_description(self, arg):
         if not self.selectedTask:
@@ -75,17 +80,17 @@ class EditTasksCLI(cmd.Cmd):
             pprint('description:'+self.selectedTask.description)
             return
         self.selectedTask.description = arg
-        task.saveTask(self.selectedTask)
+        self.selectedTask.put()
 
     def do_due(self, arg):
         if not self.selectedTask:
             print('choose a task first')
             return
         if not arg:
-            print'due date:',self.selectedTask.dueDate
+            print'due date:',self.selectedTask.duedate
             return
         time = parse.parseDate(arg)
-        self.selectedTask.dueDate = time
+        self.selectedTask.duedate = time
         print 'due date:',time
         task.saveTask(self.selectedTask)
 
@@ -97,7 +102,7 @@ class EditTasksCLI(cmd.Cmd):
             print 'assigner:',self.selectedTask.assigner
             return
         self.selectedTask.assigner = arg
-        task.saveTask(self.selectedTask)
+        self.selectedTask.put()
 
     def do_priority(self, arg):
         if not self.selectedTask:
@@ -110,7 +115,7 @@ class EditTasksCLI(cmd.Cmd):
             print('bad priority value')
             return
         self.selectedTask.priority = int(arg)
-        task.saveTask(self.selectedTask)
+        self.selectedTask.put()
 
     def do_estimatedTime (self, arg):
         if not self.selectedTask:
@@ -121,7 +126,7 @@ class EditTasksCLI(cmd.Cmd):
             return
         timedelta = parse.parseTimedelta(arg)
         self.selectedTask.estimatedTime = timedelta
-        task.saveTask(self.selectedTask)
+        self.selectedTask.put()
         print 'estimated time:',self.selectedTask.estimatedTime
 
     def do_timeSpent(self, arg):
@@ -133,7 +138,7 @@ class EditTasksCLI(cmd.Cmd):
             return
         interval = parse.parseTimeInterval(arg)
         self.selectedTask.timeSpend.append()
-        task.saveTask(self.selectedTask)
+        self.selectedTask.put()
         print 'time spend:',self.selectedTask.timeSpent
 
     def do_wait(self, arg):
@@ -145,7 +150,7 @@ class EditTasksCLI(cmd.Cmd):
             return
         self.selectedTask.waits.append(task.Wait())
         self.selectedTask.waits[-1].whatFor = arg
-        task.saveTask(self.selectedTask)
+        selectedTask.put()
         print 'waits:',self.selectedTask.waits
 
     def do_appointment(self, arg):
@@ -153,7 +158,7 @@ class EditTasksCLI(cmd.Cmd):
             print('choose a task first')
             return
         self.selectedTask.isAppointment = True
-        task.saveTask(self.selectedTask)
+        self.selectedTask.put()
         print 'task is now an appointment'
 
     def do_notAppointment(self, arg):
@@ -161,7 +166,7 @@ class EditTasksCLI(cmd.Cmd):
             print('choose a task first')
             return
         self.selectedTask.isAppointment = False
-        task.saveTask(self.selectedTask)
+        self.selectedTask.put()
         print 'task is now not an appointment'
 
     def do_notComplete(self, arg):
@@ -169,14 +174,14 @@ class EditTasksCLI(cmd.Cmd):
             print('choose a task first')
             return
         self.selectedTask.isComplete = False
-        task.saveTask(self.selectedTask)
+        self.selectedTask.put()
 
     def do_complete(self, arg):
         if not self.selectedTask:
             print('choose a task first')
             return
         self.selectedTask.isComplete = True
-        task.saveTask(self.selectedTask)
+        self.selectedTask.put()
 
     def do_showCurrentTask(self, arg):
         if not self.selectedTask:
@@ -184,7 +189,7 @@ class EditTasksCLI(cmd.Cmd):
             return
         t = self.selectedTask
         print(t.name)
-        for (label,prop) in zip(['desc:','due:','assigned by:','priority:','time estimate:','time spent','start time','waits','is appointment:','is complete:'],[t.description, t.dueDate, t.assigner, t.priority, t.estimatedTime, t.timeSpent, t.startTime, t.waits, t.isAppointment, t.isCompleted]):
+        for (label,prop) in zip(['desc:','due:','assigned by:','priority:','time estimate:','time spent','start time','waits','is appointment:','is complete:'],[t.description, t.duedate, t.assigner, t.priority, t.estimatedTime, t.timeSpent, t.startTime, t.waits, t.isAppointment, t.isCompleted]):
             if prop:
                 print label,prop
 
@@ -194,19 +199,20 @@ class EditTasksCLI(cmd.Cmd):
             return
         check = parse.parseBoolean(raw_input('really delete task'+self.selectedTask.__repr__()+'?\n'))
         if check:
-            task.removeTask(self.selectedTask)
+            task.deleteTask(self.selectedTask)
             self.selectedTask = None
 
     def do_listChronologicallyByDueDate(self, arg):
         pprint(task.getTheStack(task.loadTasks()))
 
     def do_listOverdue(self, arg):
-        pprint([t for t in task.loadTasks() if t.dueDate < datetime.datetime.now()])
+        pprint([t for t in self.taskList if t.duedate < datetime.datetime.now()])
 
     def do_graphTasks(self, arg):
         pass
 
     def do_workedOn(self, arg):
+        "doesn't do anything yet"
         return parse.parseTimeInterval(arg)
 
 if __name__ == '__main__':

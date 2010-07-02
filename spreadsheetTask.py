@@ -14,9 +14,9 @@ import atom
 import getopt
 import sys
 import string
+import auth
 
-email = 'thomasballinger'
-password = 'tegdirbevoli'
+(email, password) = auth.getAuthentication()
 spreadsheet = 'tasks'
 worksheet = 'Sheet1'
 googleCalendarZero = datetime.datetime(1899,12,30)

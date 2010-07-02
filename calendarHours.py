@@ -15,9 +15,9 @@ import getopt
 import sys
 import string
 import time
+import auth
 
-email = 'thomasballinger'
-password = 'tegdirbevoli'
+(email, password) = auth.getAuthentication()
 spreadsheet = 'tasks'
 worksheet = 'Sheet1'
 googleCalendarZero = datetime.datetime(1900,12,30)

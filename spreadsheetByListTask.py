@@ -1,5 +1,6 @@
 # task.py by ThomasBallinger@gmail.com
 
+import re
 import os
 import datetime
 try:
@@ -23,7 +24,7 @@ googleCalendarZero = datetime.datetime(1899,12,30)
 
 class Task:
     def __init__(self):
-        self.id = 0 
+        self.id = ''
         self.whose = 'no one'
         self.name = 'unnamed'
         self.description = 'no description'
@@ -47,6 +48,30 @@ class Task:
     def __cmp__(a,b):
         td = b.duedate - a.duedate
         return td.days * 24*60*60 + td.seconds
+
+    def getPropDict(self):
+        propDict = {
+            'id' : self.id ,
+            'whose' : self.whose ,
+            'name' : self.name ,
+            'description' : self.description ,
+            'assigner' : self.assigner ,
+        }
+        propDict['priority'] =  str(self.priority)
+        propDict['waitids'] = ' '.join(self.waitids)
+        propDict['duedate'] = str(datetimeToGoogleNum(self.duedate))
+        propDict['estimatedtime'] = str(timedeltaToGoogleNum(self.estimatedtime))
+        propDict['timespent'] = str(timedeltaToGoogleNum(self.timespent))
+        propDict['starttime'] = str(datetimeToGoogleNum(self.starttime))
+        if self.isappointment:
+            propDict['isappointment'] = 'TRUE'
+        else:
+            propDict['isappointment'] = 'FALSE'
+        if self.iscompleted:
+            propDict['iscompleted'] = 'TRUE'
+        else:
+            propDict['iscompleted'] = 'FALSE'
+        return propDict
 
 def datetimeToGoogleNum(dt):
     #print dt,'of type',type(dt),'is the input to datetimeToGoogle'
@@ -140,59 +165,33 @@ def updateTask(task):
     gd_client.source = 'Task Google Spreadsheet Storage'
     gd_client.ProgrammaticLogin()
     (spreadsheetID, worksheetID) = getTasksIDs(gd_client)
-
-    cellsFeed = gd_client.GetCellsFeed(spreadsheetID, worksheetID)
-    propDict = {}
-    for i, entry in enumerate(cellsFeed.entry):
-        if entry.cell.row == '1':
-            # set up params for reading
-            propDict[entry.content.text] = entry.cell.col
+    q = gdata.spreadsheet.service.ListQuery()
+    if task.id:
+        q.sq = 'id='+task.id
+        feed = gd_client.GetListFeed(spreadsheetID, worksheetID, query=q)
+    if task.id and feed:
+        rowFeed = feed.entry[0]
+        entry = gd_client.UpdateRow(rowFeed, task.getPropDict())
+        if not isinstance(entry, gdata.spreadsheet.SpreadsheetsList):
+            raise Error('Edit appears to have failed')
+    else:
+        # creating new task
+        if task.id:
+            pass # we don't need to find a new id
         else:
-            break
-
-    if not task.row:
-        raise NotImplementedError('Need to check to find first unused spot in spreadsheet')
-
-    print 'updating task',
-    for col, prop in zip(propDict.values(), propDict.keys()):
-        if prop in ['id', 'ID', 'Id']:
-            value = task.id
-        elif prop in ['whose', 'Whose', 'person']:
-            value = task.whose
-        elif prop in ['name', 'Name', 'title', 'Title']:
-            value = task.name
-        elif prop in ['desc', 'description', 'Description', 'Desc']:
-            value = task.description
-        elif prop in ['duedate','due date', 'Duedate', 'dueDate']:
-            value = str(datetimeToGoogleNum(task.duedate))
-        elif prop in ['assigner', 'Assigner', 'Assigned By', 'assigned by']:
-            value = task.assigner
-        elif prop in ['priority', 'Priority', 'Importance', 'importance']:
-            value = str(task.priority)
-        elif prop in ['estimatedtime', 'estimated time', 'Estimated Time', 'Estimatedtime']:
-            value = str(timedeltaToGoogleNum(task.estimatedtime))
-        elif prop in ['timespent', 'time spent', 'Timespent', 'Time Spent']:
-            value = str(timedeltaToGoogleNum(task.timespent))
-        elif prop in ['starttime', 'start time', 'Starttime', 'Start Time']:
-            value = str(datetimeToGoogleNum(task.starttime))
-        elif prop in ['waitids', 'wait ids', 'Wait IDs', 'Waitids']:
-            value = ' '.join(task.waitids)
-        elif prop in ['appointment', 'isappointment', 'is appointment', 'Is Appointment']:
-            if task.isappointment:
-                value = 'TRUE'
+            q2 = gdata.spreadsheet.service.ListQuery()
+            q2.orderby='column:id'
+            q2.reverse = 'true'
+            idfeed = gd_client.GetListFeed(spreadsheetID, worksheetID, query=q2)
+            if idfeed:
+                match = re.search(r'id: ([^,]+)',idfeed.entry[0].content.text)
+                task.id = str(int(match.group(1)) + 1)
             else:
-                value = 'FALSE'
-        elif prop in ['complete', 'isComplete', 'iscomplete', 'is complete','iscompleted','isCompleted','is completed']:
-            if task.iscompleted:
-                value = 'TRUE'
-            else:
-                value = 'FALSE'
-        else:
-            print 'unknown property',prop,'in column',col
-        #print 'now updating task',task.id,prop,'with value',value
-        print '.',
-        entry = gd_client.UpdateCell(row=task.row, col=col, inputValue=value, key=spreadsheetID, wksht_id=worksheetID)
-    print 'done'
+                print 'no ids found'
+                task.id = '1'
+        entry = gd_client.InsertRow(task.getPropDict(), spreadsheetID, worksheetID)
+        if not isinstance(entry, gdata.spreadsheet.SpreadsheetsList):
+            raise Error('Insert row appears to have failed')
 
 def getTasksIDs(gd_client):
     index = None
@@ -252,35 +251,10 @@ def deleteTask(task):
     raise NotImplementedError('delete that row, move everything up')
 
 def newTask(name):
-    gd_client = gdata.spreadsheet.service.SpreadsheetsService()
-    gd_client.email = email
-    gd_client.password = password
-    gd_client.source = 'Task Google Spreadsheet Storage'
-    gd_client.ProgrammaticLogin()
-    (spreadsheetID, worksheetID) = getTasksIDs(gd_client)
-
-    cellsFeed = gd_client.GetCellsFeed(spreadsheetID, worksheetID)
-    maxRow = '1'
-    maxid = '0'
-    idRow = '0'
-    for i, entry in enumerate(cellsFeed.entry):
-        if entry.cell.row == '1':
-            if entry.cell.inputValue in ['id', 'ID', 'Id']:
-                idRow = entry.cell.col
-        else:
-            if int(entry.cell.row) > int(maxRow):
-                maxRow = entry.cell.row
-            if entry.cell.col == idRow:
-                if int(entry.cell.inputValue) > int(maxid):
-                    maxid = entry.cell.inputValue
-    row = str(int(maxRow) + 1)
-    id = str(int(maxid) + 1)
-    task = Task()
-    task.name = name
-    task.id = id
-    task.row = row
-    task.put()
-    return task
+    t = Task()
+    t.name = name
+    t.id = ''
+    updateTask(t)
 
 def displayTask(task):
     raise NotImplementedError('some sort of nice text display')
@@ -294,5 +268,4 @@ if __name__ == '__main__':
     import pprint
     pprint.pprint(taskList)
 #    for task in taskList:
-#        task.put()
-        
+#        task.put()    

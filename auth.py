@@ -13,4 +13,5 @@ def getAuthentication():
             f = open(os.path.expanduser('~/.task'),'w')
             f.write(username+'\n'+password)
             f.close()
+            os.chmod(os.path.expanduser('~/.task'),0700)
     return (username, password)

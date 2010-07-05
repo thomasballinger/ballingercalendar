@@ -33,7 +33,10 @@ def getClient():
     return cal_client
 
 def getWorkHours(startdate, enddate):
-    raise NotImplementedError('Will return the when on the planned work calendar has events')
+    """Returns a list of (datetime.datetime, datetime.timedelta) pairs describing future work plans"""
+    cal_client = getClient()
+    query = gdata.calendar.service.CalendarEventQuery('work-schedule', 'private', 'full')
+    #raise NotImplementedError('Will return the when on the planned work calendar has events')
 
 def getUnscheduledWorkHours(startdate, enddate):
     raise NotImplementedError('work hours minus scheduled appointments')
@@ -87,6 +90,7 @@ def clockTime(taskid, title=None, description='', startDatetime=None, endDatetim
     return new_event
 
 if __name__ == '__main__':
-    print(getHoursWorked('4'))
-    clockTime('4',title='Working on that thing')
-    print(getHoursWorked('4'))
+    from pprint import pprint
+    start = datetime.datetime.now()
+    end = start + datetime.timedelta(10)
+    pprint(getWorkHours(start, end))

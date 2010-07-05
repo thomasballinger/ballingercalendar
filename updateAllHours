@@ -1,4 +1,4 @@
-#!/projects/schiz/software/LabPython/Python-2.6.3/python
+#!/usr/bin/python
 # update time spent for all tasks
 # thomasballinger@gmail.com
 
@@ -9,6 +9,7 @@ import spreadsheetTask as task
 
 taskList = task.createTasks()
 for task in taskList:
-    print 'updating',task.name,task.timespent
+    print 'updating',task.name,task.timespent,
     task.timespent = hours.getHoursWorked(task.id)
+    print 'to',task.timespent 
     task.put()

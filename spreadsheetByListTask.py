@@ -255,6 +255,7 @@ def newTask(name):
     t.name = name
     t.id = ''
     updateTask(t)
+    return t
 
 def displayTask(task):
     raise NotImplementedError('some sort of nice text display')

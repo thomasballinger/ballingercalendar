@@ -232,7 +232,7 @@ class EditTasksCLI(cmd.Cmd):
     def do_listInProgress(self, arg):
         
         taskList = [t for t in self.taskList if not t.iscompleted]
-        sorted(taskList, key=lambda t: datetime.timedelta(t.priority*365*10) + (t.duedate - datetime.datetime.now()))
+        taskList.sort(key=lambda t: datetime.timedelta(t.priority*365*10) + (t.duedate - datetime.datetime.now()))
         maxTaskLength = max(len(t.name) for t in taskList)
         print ('task name'+' '*maxTaskLength)[:maxTaskLength]+ ' p' + '   ' + 'time left' + '   ' + 'time till due'
         for t in taskList:
@@ -242,7 +242,7 @@ class EditTasksCLI(cmd.Cmd):
 
     def timedeltaToDaysString(self, td):
         if abs(td) < datetime.timedelta(1):
-            output = str(abs(td).hours)+':'+('00'+str(abs(td).seconds / 60))[-2:]
+            output = str(abs(td).seconds / 3600)+':'+('00'+str(abs(td).seconds / 60))[-2:]
         else:
             output = str(abs(td).days)+' days'
 #            output = str(abs(td).days)+' days, '+('00'+str(abs(td).seconds / 3600))[-2:]+':'+('00'+str(abs(td).seconds / 60))[-2:]

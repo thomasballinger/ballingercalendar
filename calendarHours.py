@@ -1,4 +1,4 @@
-# task.py by ThomasBallinger@gmail.com
+# hours.py by ThomasBallinger@gmail.com
 
 import os
 import datetime
@@ -17,9 +17,9 @@ import string
 import time
 import auth
 
+from pprint import pprint
+
 (email, password) = auth.getAuthentication()
-spreadsheet = 'tasks'
-worksheet = 'Sheet1'
 googleCalendarZero = datetime.datetime(1900,12,30)
 idstringfront = '%$&task&$%-%$#'
 idstringback  = '#$%'
@@ -56,6 +56,27 @@ def getHoursWorked(taskid):
             hours += td
     return hours
 
+def getWeekHours(taskid, ds1=None, ds2=None):
+    if bool(ds1) ^ bool(ds2):
+        raise Exception('use both or neither datetime arguments')
+    if not ds1:
+        raise Exception('not implemented yet')
+    idstring = idstringfront + taskid + idstringback
+    cal_client = getClient()
+    query = gdata.calendar.service.CalendarEventQuery('default', 'private', 'full', idstring)
+    query.start_min = ds1
+    query.start_max = ds2
+    feed = cal_client.CalendarQuery(query)
+
+    hours = datetime.timedelta(0)
+    for i, event in zip(range(len(feed.entry)), feed.entry):
+        for when in event.when:
+            start = googleCalTimeToDatetime(when.start_time)
+            end =  googleCalTimeToDatetime(when.end_time)
+            td = end - start
+            hours += td
+    return hours
+    
 def googleCalTimeToDatetime(gcaltime):
     (date, time) = gcaltime.split('T')
     (time,timezone) = time.split('-')
@@ -90,7 +111,8 @@ def clockTime(taskid, title=None, description='', startDatetime=None, endDatetim
     return new_event
 
 if __name__ == '__main__':
-    from pprint import pprint
-    start = datetime.datetime.now()
-    end = start + datetime.timedelta(10)
-    pprint(getWorkHours(start, end))
+#    from pprint import pprint
+#    start = datetime.datetime.now()
+#    end = start + datetime.timedelta(10)
+#    pprint(getWorkHours(start, end))
+    print getWeekHours('23','2010-07-05', '2010-07-12')

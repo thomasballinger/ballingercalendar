@@ -1,4 +1,7 @@
+
+import getpass
 import os
+
 def getAuthentication():
     '''Returns username, password'''
     if os.path.exists(os.path.expanduser('~/.task')):
@@ -7,7 +10,7 @@ def getAuthentication():
         (username, password) = s.split()
     else:
         username = raw_input('gmail address:')
-        password = raw_input('password:')
+        password = getpass.getpass('password:')
         store = raw_input('store credentials for next time? [y/N]')
         if store in ['Y','y','yes']:
             f = open(os.path.expanduser('~/.task'),'w')

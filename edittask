@@ -2,7 +2,7 @@
 # edittask
 # being updated for use with spreadsheet-based tasks
 # thomasballinger@gmail.com
-
+import time
 import os, sys, optparse
 import datetime, parse
 import spreadsheetByListTask as task
@@ -72,6 +72,7 @@ class EditTasksCLI(cmd.Cmd):
                 return False
         t = task.newTask(arg.replace('_',' '))
         self.selectedTask = t
+        time.sleep(1)
 
     def do_description(self, arg):
         if not self.selectedTask: print('choose a task first'); return
@@ -239,6 +240,17 @@ class EditTasksCLI(cmd.Cmd):
             timeToGo = self.timedeltaToHoursString(t.estimatedtime - t.timespent)
             timeTillDue = self.timedeltaToDaysString(t.duedate - datetime.datetime.now())
             print (t.name + ' '*maxTaskLength)[:maxTaskLength]+' '+str(t.priority)+'   '+(timeToGo+' '*10)[:10]+timeTillDue
+
+    def do_listProjects(self, arg):
+        taskList = [t for t in self.taskList if not t.iscompleted]
+        #taskList.sort(key=lambda t: datetime.timedelta(t.priority*365*10) + (t.duedate - datetime.datetime.now()))
+        taskList.sort(key=lambda t: t.assigner)
+        maxTaskLength = max(len(t.name) for t in taskList)
+        for t in taskList:
+            timeToGo = self.timedeltaToHoursString(t.estimatedtime - t.timespent)
+            timeTillDue = self.timedeltaToDaysString(t.duedate - datetime.datetime.now())
+            print timeToGo+'\t'+str(t.priority)+'\t'+(t.name + ' '*maxTaskLength)[:maxTaskLength]+'\t'+t.assigner
+            print '\t'+t.description+'\n'
 
     def timedeltaToDaysString(self, td):
         if abs(td) < datetime.timedelta(1):

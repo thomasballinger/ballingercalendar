@@ -28,23 +28,24 @@ for use of work hours is essential, and should allow calendar-type or task-relat
 I want enough information about each task that a schedule could be suggested for the day.
 
 \section{Implementation}
-All sorts of queries need to be possible of the list of tasks.  These tasks shouldn't number more
-than ~1500 per year.
+All sorts of queries need to be possible of the list of tasks.  The number of tasks should be on the
+order of 1000 per year.
 
 \subsection{Task Class}
 These are the things I can think of right now that I'd want to be associated with each task.
 \begin{tabular}{c || c | c }
     Property             & type        \\ \hline
-    Name                 & string      \\ \hline
-    Description          & string      \\ \hline
+    Name (must be unique, a-z A-Z and space )                & string      \\ \hline
+    Whose (who has to do it)               & string      \\ \hline
+    Description (inc. links)         & string      \\ \hline
     Due Date             & datetime    \\ \hline
     Assigner             & string      \\ \hline
     Priority             & int 0-9     \\ \hline
     Estimated Time       & datetime    \\ \hline
-    Assignment Time      & datetime    \\ \hline
+    Start Time           &
+    Created time (readonly)& datetime    \\ \hline
     Times Spent          & list of datetime pairs   \\ \hline
-    Things Waiting On    & list of string, datetime pairs   \\ \hline
-    Estimated Wait Times & list of timedeltas         \\ \hline
+    Things Waiting On    & list of other tasks   \\ \hline
     Appointment Flag     & boolean     \\ \hline
     Completed Flag       & boolean     \\ \hline
 \end{tabular}
@@ -60,9 +61,23 @@ a dialog, and I could have options to count things and such - but then I have to
 it in javascript and xml, which doesn't sound as fun as python.  Something else might
 have to handle the totalling up of time and such.
 
-\subsection{Google App Engine}
-Google App Enging can access Google Calendar, and would be really easy to work with.
-I could try to use jquery javascript for graphical interaction.
+\subsection{Google App Engine Website}
+To begin with, the presentation code will be developed for creating reports
+
+\begin{verbatim}
+\about work on this later
+\new  checklist of how to get set up
+\thomasballinger\prefs
+    other users allowed access besides me
+\thomasballinger\tasks\id\<taskid>
+    pretty representation of that task, showing all info
+\thomasballinger\tasks\name\<taskname>
+    redirect to id url
+\thomasballinger\report\<startdatestring>\<enddatestring>
+    breakdown by assigner, hours, with links
+    plaus expandable descriptions w/javascript
+
+\end{verbatim}
 
 \subsection{Local App}
 Serving a local database would be the easiest thing to transition to, since I have this working
@@ -76,6 +91,10 @@ Simply and easily create and edit tasks.
 Even more simply and easily mark tasks as complete, adding waitings on. 
 Produce comp hour reports, and predictions of how busy I am with 
 important and med-importance things to show paula.
+
+\subsection{Weekly Hour Report}
+
+\subsection{Projects Report}
 
 \subsection{Graphical Interaction}
 How to best record that I just worked on something?  
@@ -99,8 +118,5 @@ If not Google Calendar, some graphical calendar app to allow adding future appoi
 and tasks.
 
 \end{document}
-
 %\includegraphics[width=100mm]{SNRs}
 %\includegraphics[width=100mm]{stdev}
-
-Just using this for note taking right now, 

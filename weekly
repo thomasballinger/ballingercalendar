@@ -19,19 +19,21 @@ def updateHours():
 
 def datetimeToHoursString(dt):
     s = dt.days * 24 * 3600 + dt.seconds
-    h = s / 3600
-    return '%d.1' % h + ' hours'
+    h = float(s) / 3600
+    return '%.1f' % h + ' hours'
 
 dToh = datetimeToHoursString
 
-def showWeek(updateAllHours=False):
-    ds1 = '2010-07-05'
-    ds2 = '2010-07-12'
+def showWeek(ds1, ds2, updateAllHours=True):
     if updateAllHours:
         updateHours()
     taskList = task.createTasks()
     totalHours = datetime.timedelta(0)
+    print 'finding weekly hours:'
+    i=1
     for t in taskList:
+        print '  getting weekly totals for',i,'of',len(taskList),'tasks'
+        i+=1
         t.weekHours = hours.getWeekHours(t.id, ds1, ds2)
         totalHours += t.weekHours
     weekList = [x for x in taskList if x.weekHours > datetime.timedelta(0)]
@@ -46,14 +48,15 @@ def showWeek(updateAllHours=False):
     assigners.sort(key=lambda x: -x[1])
     weekList.sort(key=lambda t: t.assigner)
     
-    print dToh(totalHours), 'worked this week'
-    print 'tasks for week', ds1, 'to', ds2
+    print dToh(totalHours), 'worked'
+    print 'tasks for', ds1, 'to', ds2
     for (assigner, assignerHours) in assigners:
-        print '  ', assignerHours, assigner
+        print '  ', dToh(assignerHours), assigner
         assignerTasks = [t for t in weekList if t.assigner == assigner] 
         assignerTasks.sort(key=lambda t: -t.weekHours)
         for t in assignerTasks:
-            print '    ', t.weekHours, t.name
+            print '    ', dToh(t.weekHours), t.name
     
 if __name__ == '__main__':
-    showWeek()
+    showWeek('2010-07-05','2010-07-19',updateAllHours=False)
+#    print dToh(datetime.timedelta(1,1800))

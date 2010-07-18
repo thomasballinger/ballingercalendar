@@ -25,6 +25,7 @@ idstringfront = '%$&task&$%-%$#'
 idstringback  = '#$%'
 
 def getClient():
+    # Add a way to get a web-type client
     cal_client = gdata.calendar.service.CalendarService()
     cal_client.email = email
     cal_client.password = password
@@ -41,7 +42,12 @@ def getWorkHours(startdate, enddate):
 def getUnscheduledWorkHours(startdate, enddate):
     raise NotImplementedError('work hours minus scheduled appointments')
 
-def getHoursWorked(taskid):
+def getHoursWorked(taskidList):
+    if type(taskidList) != type([]):
+        return getHoursWorkedSingle
+    raise Exception("This doesn't actually make that much sense; the feed has some max length")
+
+def getHoursWorkedSingle(taskid):
     '''Returns just a timedelta object representing time spend on task'''
     idstring = idstringfront + taskid + idstringback
     cal_client = getClient()
@@ -56,7 +62,21 @@ def getHoursWorked(taskid):
             hours += td
     return hours
 
-def getWeekHours(taskid, ds1=None, ds2=None):
+def getWeekHours(taskidList, ds1=None, ds2=None):
+    if type(taskidList) != type([]):
+        return getWeekHoursSingle(taskidList, ds1, ds2)
+    if bool(ds1) ^ bool(ds2):
+        raise Exception('use both or neither datetime arguments')
+    if not ds1:
+        raise Exception('not implemented yet')
+    idstrings = [idstringfront + id + idstringback for id in taskidList]
+    query = gdata.calendar.service.CalendarEventQuery('default', 'private', 'full', idstringfront)
+    query.start_min = ds1
+    query.start_max = ds2
+    feed = cal_client.CalendarQuery(query)
+    raise Exception("Check how max results works before using this")
+
+def getWeekHoursSingle(taskid, ds1=None, ds2=None):
     if bool(ds1) ^ bool(ds2):
         raise Exception('use both or neither datetime arguments')
     if not ds1:
@@ -115,4 +135,6 @@ if __name__ == '__main__':
 #    start = datetime.datetime.now()
 #    end = start + datetime.timedelta(10)
 #    pprint(getWorkHours(start, end))
-    print getWeekHours('23','2010-07-05', '2010-07-12')
+#    print getWeekHours('23','2010-07-05', '2010-07-12')
+    cal_client = getClient()
+

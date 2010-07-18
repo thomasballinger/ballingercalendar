@@ -10,6 +10,7 @@ import gdata.apps.service
 import getpass
 import sys
 import auth
+import webbrowser
  
 def getcaptcha(service):
         try:
@@ -20,6 +21,7 @@ def getcaptcha(service):
                 url = service._GetCaptchaURL()
                 print "Please go to this URL:"
                 print "  " + url
+                webbrowser.open(url)
                 captcha_response = raw_input("Type the captcha image here: ")
                 service.ProgrammaticLogin(captcha_token, captcha_response)
                 print "Done!"

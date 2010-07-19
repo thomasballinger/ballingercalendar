@@ -29,10 +29,8 @@ def showWeek(ds1, ds2, updateAllHours=True):
         updateHours()
     taskList = task.createTasks()
     totalHours = datetime.timedelta(0)
-    print 'finding weekly hours:'
     i=1
     for t in taskList:
-        print '  getting weekly totals for',i,'of',len(taskList),'tasks'
         i+=1
         t.weekHours = hours.getWeekHours(t.id, ds1, ds2)
         totalHours += t.weekHours

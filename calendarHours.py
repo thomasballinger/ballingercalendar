@@ -62,6 +62,13 @@ def getHoursWorkedSingle(taskid):
             hours += td
     return hours
 
+def testSearch(text):
+    cal_client = getClient()
+    query = gdata.calendar.service.CalendarEventQuery('default', 'private', 'full', text)
+    feed = cal_client.CalendarQuery(query)
+    for event in feed.entry:
+        print event.title.text
+
 def getWeekHours(taskidList, ds1=None, ds2=None):
     if type(taskidList) != type([]):
         return getWeekHoursSingle(taskidList, ds1, ds2)
@@ -95,10 +102,15 @@ def getWeekHoursSingle(taskid, ds1=None, ds2=None):
             end =  googleCalTimeToDatetime(when.end_time)
             td = end - start
             hours += td
+            print event.title.text,start,end
     return hours
     
 def googleCalTimeToDatetime(gcaltime):
-    (date, time) = gcaltime.split('T')
+    try:
+        (date, time) = gcaltime.split('T')
+    except:
+        (year, month, day) = gcaltime.split('-')
+        return datetime.datetime(int(year), int(month), int(day))
     (time,timezone) = time.split('-')
     (year, month, day) = date.split('-')
     (hours, minutes, seconds) = time.split(':')
@@ -130,11 +142,32 @@ def clockTime(taskid, title=None, description='', startDatetime=None, endDatetim
     #print '\tEvent HTML URL: %s' % (new_event.GetHtmlLink().href,)
     return new_event
 
+def updateEvent(service, event, newDescription):
+    oldDescription = event.context.text
+    event.context.text = newDescription
+
 if __name__ == '__main__':
 #    from pprint import pprint
 #    start = datetime.datetime.now()
 #    end = start + datetime.timedelta(10)
 #    pprint(getWorkHours(start, end))
-#    print getWeekHours('23','2010-07-05', '2010-07-12')
+#    print getWeekHours('10','2010-07-05', '2010-07-24')
+
+    testSearch('asdf'+'2'+'asdf')
+
     cal_client = getClient()
+    query = gdata.calendar.service.CalendarEventQuery('default', 'private', 'full', idstringfront)
+    query.start_min = ds1
+    query.start_max = ds2
+    query.max_results = 1000
+    feed = cal_client.CalendarQuery(query)
+
+    for event in feed.entry:
+        print event.title.text,start,end
+        oldDescription = event.context.text
+        newDescription = oldDescription.replace(idstringfront,'qyvztaskqyvz qyvz').replace(idstringback,'qyvz')
+        event.context.text = newDescription
+        result = cal_client.UpdateEvent(event.GetEditLink().href, event)
+        raw_input('Did it work?')
+
 

@@ -7,8 +7,8 @@ import os, sys, optparse
 import calendarHours as hours
 import spreadsheetTask as task
 
-taskList = task.createTasks()
-for task in taskList:
+task_list = task.createTasks()
+for task in task_list:
     print 'updating',task.name,task.timespent,
     task.timespent = hours.getHoursWorked(task.id)
     print 'to',task.timespent 

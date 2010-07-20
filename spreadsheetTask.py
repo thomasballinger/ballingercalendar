@@ -236,17 +236,17 @@ def printFeed(feed):
         else:
             print '%s %s\n' % (i, entry.title.text)
 
-def getTheStack(taskList):
-    stack = [x for x in taskList if not x.iscompleted]
+def getTheStack(task_list):
+    stack = [x for x in task_list if not x.iscompleted]
     stack.sort()
-    return taskList
+    return task_list
 
-def importanceUrgencyGraph(taskList):
+def importanceUrgencyGraph(task_list):
     """Returns a list of [task,[duedate, Importance]] items"""
-    firstDueDate = min([x.duedate for x in taskList])
-    lastDueDate = max([x.duedate for x in taskList])
-    now = min([x.duedate for x in taskList])
-    return [[x.name,[x.duedate,x.priority]] for x in taskList]
+    firstDueDate = min([x.duedate for x in task_list])
+    lastDueDate = max([x.duedate for x in task_list])
+    now = min([x.duedate for x in task_list])
+    return [[x.name,[x.duedate,x.priority]] for x in task_list]
 
 def deleteTask(task):
     raise NotImplementedError('delete that row, move everything up')
@@ -290,9 +290,9 @@ def updateTimeSpent(task):
 
 if __name__ == '__main__':
     newTask('asdf asdfas dadsfati ng')
-    taskList = createTasks()
+    task_list = createTasks()
     import pprint
-    pprint.pprint(taskList)
-#    for task in taskList:
+    pprint.pprint(task_list)
+#    for task in task_list:
 #        task.put()
         

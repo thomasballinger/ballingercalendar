@@ -10,8 +10,8 @@ import spreadsheetTask as task
 from pprint import pprint
 
 def updateHours():
-    taskList = task.createTasks()
-    for t in taskList:
+    task_list = task.createTasks()
+    for t in task_list:
         print 'updating',t.name,t.timespent,
         t.timespent = hours.getHoursWorked(t.id)
         print 'to',t.timespent 
@@ -24,17 +24,20 @@ def datetimeToHoursString(dt):
 
 dToh = datetimeToHoursString
 
+def showPrettyWeek(ds1, ds2, templateFile, updateAllHours=True):
+    pass
+
 def showWeek(ds1, ds2, updateAllHours=True):
     if updateAllHours:
         updateHours()
-    taskList = task.createTasks()
+    task_list = task.createTasks()
     totalHours = datetime.timedelta(0)
     i=1
-    for t in taskList:
+    for t in task_list:
         i+=1
         t.weekHours = hours.getWeekHours(t.id, ds1, ds2)
         totalHours += t.weekHours
-    weekList = [x for x in taskList if x.weekHours > datetime.timedelta(0)]
+    weekList = [x for x in task_list if x.weekHours > datetime.timedelta(0)]
     assigners = {}
     for t in weekList:
         if not t.assigner in assigners:
@@ -56,5 +59,6 @@ def showWeek(ds1, ds2, updateAllHours=True):
             print '    ', dToh(t.weekHours), t.name
     
 if __name__ == '__main__':
-    showWeek('2010-07-05','2010-07-19',updateAllHours=False)
+#    showWeek('2010-07-05','2010-07-19',updateAllHours=False)
 #    print dToh(datetime.timedelta(1,1800))
+    showPrettyWeek('2010-07-05', '2010-07-19')    

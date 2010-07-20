@@ -5,5 +5,5 @@ import pylab
 
 
 if __name__ == '__main__':
-    taskList = task.createTasks()
+    task_list = task.createTasks()
     

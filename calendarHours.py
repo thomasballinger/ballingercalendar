@@ -21,8 +21,8 @@ from pprint import pprint
 
 (email, password) = auth.getAuthentication()
 googleCalendarZero = datetime.datetime(1900,12,30)
-idstringfront = '%$&task&$%-%$#'
-idstringback  = '#$%'
+idstringfront = 'qyvztaskqyvz qyvz'
+idstringback  = 'qyvz'
 
 def getClient():
     # Add a way to get a web-type client
@@ -143,8 +143,8 @@ def clockTime(taskid, title=None, description='', startDatetime=None, endDatetim
     return new_event
 
 def updateEvent(service, event, newDescription):
-    oldDescription = event.context.text
-    event.context.text = newDescription
+    oldDescription = event.content.text
+    event.content.text = newDescription
 
 if __name__ == '__main__':
 #    from pprint import pprint
@@ -153,21 +153,25 @@ if __name__ == '__main__':
 #    pprint(getWorkHours(start, end))
 #    print getWeekHours('10','2010-07-05', '2010-07-24')
 
-    testSearch('asdf'+'2'+'asdf')
+    testSearch('qyvz'+'10'+'qyvz')
 
-    cal_client = getClient()
-    query = gdata.calendar.service.CalendarEventQuery('default', 'private', 'full', idstringfront)
-    query.start_min = ds1
-    query.start_max = ds2
-    query.max_results = 1000
-    feed = cal_client.CalendarQuery(query)
 
-    for event in feed.entry:
-        print event.title.text,start,end
-        oldDescription = event.context.text
-        newDescription = oldDescription.replace(idstringfront,'qyvztaskqyvz qyvz').replace(idstringback,'qyvz')
-        event.context.text = newDescription
-        result = cal_client.UpdateEvent(event.GetEditLink().href, event)
-        raw_input('Did it work?')
+
+
+
+#     #code for changing the idstrings we use to identify tasks 
+#
+#    cal_client = getClient()
+#    query = gdata.calendar.service.CalendarEventQuery('default', 'private', 'full', idstringfront)
+#    query.max_results = 1000
+#    feed = cal_client.CalendarQuery(query)
+#
+#    for event in feed.entry:
+#        print event.title.text
+#        oldDescription = event.content.text
+#        newDescription = oldDescription.replace(idstringfront,'\nqyvztaskqyvz qyvz').replace(idstringback,'qyvz')
+#        event.content.text = newDescription
+#        result = cal_client.UpdateEvent(event.GetEditLink().href, event)
+#        #raw_input('Did it work?')
 
 

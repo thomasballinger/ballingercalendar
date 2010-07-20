@@ -16,12 +16,14 @@ import sys
 import string
 import time
 import auth
+import re
 
 from pprint import pprint
 
 (email, password) = auth.getAuthentication()
 googleCalendarZero = datetime.datetime(1900,12,30)
-idstringfront = 'qyvztaskqyvz qyvz'
+idstringtask  = 'qyvztaskqyvz'
+idstringfront = 'qyvz'
 idstringback  = 'qyvz'
 
 def getClient():
@@ -45,11 +47,10 @@ def getUnscheduledWorkHours(startdate, enddate):
 def getHoursWorked(taskidList):
     if type(taskidList) != type([]):
         return getHoursWorkedSingle
-    raise Exception("This doesn't actually make that much sense; the feed has some max length")
 
 def getHoursWorkedSingle(taskid):
     '''Returns just a timedelta object representing time spend on task'''
-    idstring = idstringfront + taskid + idstringback
+    idstring = idstringtask + ' ' + idstringfront + taskid + idstringback
     cal_client = getClient()
     query = gdata.calendar.service.CalendarEventQuery('default', 'private', 'full', idstring)
     feed = cal_client.CalendarQuery(query)
@@ -69,26 +70,41 @@ def testSearch(text):
     for event in feed.entry:
         print event.title.text
 
-def getWeekHours(taskidList, ds1=None, ds2=None):
+def getWeekHours(taskidList=[], ds1=None, ds2=None):
     if type(taskidList) != type([]):
         return getWeekHoursSingle(taskidList, ds1, ds2)
     if bool(ds1) ^ bool(ds2):
         raise Exception('use both or neither datetime arguments')
     if not ds1:
         raise Exception('not implemented yet')
-    idstrings = [idstringfront + id + idstringback for id in taskidList]
-    query = gdata.calendar.service.CalendarEventQuery('default', 'private', 'full', idstringfront)
+    idstring = idstringtask
+    query = gdata.calendar.service.CalendarEventQuery('default', 'private', 'full', idstringtask)
     query.start_min = ds1
     query.start_max = ds2
+    query.max_results = 1000
+    cal_client = getClient()
     feed = cal_client.CalendarQuery(query)
-    raise Exception("Check how max results works before using this")
+    resultDict = {}
+    for event in feed.entry:
+        id = re.search(idstringtask+' '+idstringfront+'(.*)'+idstringback, event.content.text).group(1)
+        hours = datetime.timedelta(0)
+        for when in event.when:
+            start = googleCalTimeToDatetime(when.start_time)
+            end =  googleCalTimeToDatetime(when.end_time)
+            td = end - start
+            hours += td
+        if id in resultDict:
+            resultDict[id] += hours
+        else:
+            resultDict[id] = hours
+    return resultDict
 
 def getWeekHoursSingle(taskid, ds1=None, ds2=None):
     if bool(ds1) ^ bool(ds2):
         raise Exception('use both or neither datetime arguments')
     if not ds1:
         raise Exception('not implemented yet')
-    idstring = idstringfront + taskid + idstringback
+    idstring = idstringtask + ' ' + idstringfront + taskid + idstringback
     cal_client = getClient()
     query = gdata.calendar.service.CalendarEventQuery('default', 'private', 'full', idstring)
     query.start_min = ds1
@@ -121,7 +137,7 @@ def clockTime(taskid, title=None, description='', startDatetime=None, endDatetim
     if title is None:
         title = 'hours clocked'
     cal_client = getClient()
-    content = description + '/n' + idstringfront + taskid + idstringback
+    content = description + '/n' + idstringtask+' '+idstringfront + taskid + idstringback
     event = gdata.calendar.CalendarEventEntry()
     event.title = atom.Title(text=title)
     event.content = atom.Content(text=content)
@@ -152,9 +168,7 @@ if __name__ == '__main__':
 #    end = start + datetime.timedelta(10)
 #    pprint(getWorkHours(start, end))
 #    print getWeekHours('10','2010-07-05', '2010-07-24')
-
-    testSearch('qyvz'+'10'+'qyvz')
-
+    print getWeekHours(['10','11','12'],'2010-07-05', '2010-07-24')
 
 
 
@@ -162,14 +176,14 @@ if __name__ == '__main__':
 #     #code for changing the idstrings we use to identify tasks 
 #
 #    cal_client = getClient()
-#    query = gdata.calendar.service.CalendarEventQuery('default', 'private', 'full', idstringfront)
+#    query = gdata.calendar.service.CalendarEventQuery('default', 'private', 'full', idstringtask)
 #    query.max_results = 1000
 #    feed = cal_client.CalendarQuery(query)
 #
 #    for event in feed.entry:
 #        print event.title.text
 #        oldDescription = event.content.text
-#        newDescription = oldDescription.replace(idstringfront,'\nqyvztaskqyvz qyvz').replace(idstringback,'qyvz')
+#        newDescription = oldDescription.replace(idstringtask+' '+idstringfront,'\nqyvztaskqyvz qyvz').replace(idstringback,'qyvz')
 #        event.content.text = newDescription
 #        result = cal_client.UpdateEvent(event.GetEditLink().href, event)
 #        #raw_input('Did it work?')

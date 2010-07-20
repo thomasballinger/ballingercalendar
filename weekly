@@ -24,9 +24,6 @@ def datetimeToHoursString(dt):
 
 dToh = datetimeToHoursString
 
-def showPrettyWeek(ds1, ds2, templateFile, updateAllHours=True):
-    pass
-
 def showWeek(ds1, ds2, updateAllHours=True):
     if updateAllHours:
         updateHours()

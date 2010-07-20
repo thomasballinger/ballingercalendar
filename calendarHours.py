@@ -158,10 +158,6 @@ def clockTime(taskid, title=None, description='', startDatetime=None, endDatetim
     #print '\tEvent HTML URL: %s' % (new_event.GetHtmlLink().href,)
     return new_event
 
-def updateEvent(service, event, newDescription):
-    oldDescription = event.content.text
-    event.content.text = newDescription
-
 if __name__ == '__main__':
 #    from pprint import pprint
 #    start = datetime.datetime.now()

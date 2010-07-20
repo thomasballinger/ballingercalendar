@@ -92,13 +92,27 @@ def timedeltaToGoogleNum(td):
     gdays = td.days + float(td.seconds) / 60 / 60 / 24 + float(td.microseconds) / 1000000 / 60 / 60 / 24
     return gdays
 
-def createTasks():
-    '''Returns a list of task objects'''
+def getClient():
     gd_client = gdata.spreadsheet.service.SpreadsheetsService()
     gd_client.email = email
     gd_client.password = password
     gd_client.source = 'Task Google Spreadsheet Storage'
-    gd_client.ProgrammaticLogin()
+    try:
+        gd_client.ProgrammaticLogin()
+    except gdata.service.CaptchaRequired:
+        captcha_token = gd_client._GetCaptchaToken()
+        url = gd_client._GetCaptchaURL()
+        print "Please go to this URL:"
+        print "  " + url
+        webbrowser.open(url)
+        captcha_response = raw_input("Type the captcha image here: ")
+        gd_client.ProgrammaticLogin(captcha_token, captcha_response)
+        print "Done!"
+    return gd_client 
+
+def createTasks():
+    '''Returns a list of task objects'''
+    gd_client = getClient()
     (spreadsheetID, worksheetID) = getTasksIDs(gd_client)
     cellsFeed = gd_client.GetCellsFeed(spreadsheetID, worksheetID)
     if not isinstance(cellsFeed, gdata.spreadsheet.SpreadsheetsCellsFeed):
@@ -263,10 +277,35 @@ def displayTask(task):
 def updateTimeSpent(task):
     raise NotImplementedError('check google calendar for matching events')
 
+def timedeltaToDaysString(td):
+    if abs(td) < datetime.timedelta(1):
+        output = str(abs(td).seconds / 3600)+':'+('00'+str(abs(td).seconds / 60))[-2:]
+    else:
+        output = str(abs(td).days)+' days'
+#        output = str(abs(td).days)+' days, '+('00'+str(abs(td).seconds / 3600))[-2:]+':'+('00'+str(abs(td).seconds / 60))[-2:]
+    if td < datetime.timedelta(0):
+        # overdue timedelta
+        return 'overdue by '+output
+    else:
+        return output
+
+def timedeltaToHoursString(td):
+    s = td.seconds +  24 * 60 * 60 * td.days
+    h = s / 60 / 60
+    m = int(s / 60 % 60)
+    return str(h)+':'+('00'+str(m))[-2:]
+
+def timedeltaToJustHoursString(dt):
+    s = dt.days * 24 * 3600 + dt.seconds
+    h = float(s) / 3600
+    return '%.1f' % h + ' hours'
+
 if __name__ == '__main__':
-    newTask('asdf asdfas dadsfati ng')
-    task_list = createTasks()
-    import pprint
-    pprint.pprint(task_list)
+#    newTask('asdf asdfas dadsfati ng')
+#    task_list = createTasks()
+#    import pprint
+#    pprint.pprint(task_list)
 #    for task in task_list:
 #        task.put()    
+    from pprint import pprint
+    pprint(createTasks())

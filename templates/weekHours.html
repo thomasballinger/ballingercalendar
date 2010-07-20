@@ -1,0 +1,43 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN">
+{# 
+What's available: 
+ds1, ds2, assigners, task_list, week_list, td2d, td2jh, td2h, timesort 
+#}
+<html lang="en">
+    <head>
+        <title>Hours for Interval {{ds1}} to {{ds2}}</title>
+        <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.3.2/jquery.min.js"></script>
+        
+        <script type="text/javascript">
+            // awesome js code
+        </script>
+        
+        <style type="text/css">
+            body {background-color:tan;}
+            h1 {color:maroon;font-size:20pt;}
+            hr{color:navy;}
+            p {font-size:11pt;margin-left:15px;}
+            a:link {color:green;}
+            a:visited {color:yellow;}
+            a:hover {color:black;}
+            a:active {color:blue;}
+        </style>
+    </head>
+
+    <body>
+        <h1>Tasks for Interval {{ds1}} to {{ds2}}</h1>
+        <div class="assigners">
+        {% for assigner in assigners %}
+            <h2>{{ assigner[0] }}: {{ td2jh(assigner[1]) }}</h2>
+            {% for task in timesort(task_list) if task.assigner == assigner[0] and task.weekHours != zeroHours %}
+                <div>
+                    <h3>{{task.name|title}}: {{td2jh(task.weekHours)}} </h3>
+                </div>
+                <div>
+                    <p>priority: {{task.priority}}<br>{{task.description}}</p>
+                </div>
+            {% endfor %}
+        {% endfor %}
+        </div>
+    </body>
+</html>

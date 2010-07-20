@@ -5,7 +5,7 @@
  
 # Props to http://groups.google.com/group/google-apps-apis/browse_thread/thread/eea81678085b8904
 # and franko353 <frank.wil...@gmail.com>
- 
+
 import gdata.apps.service
 import getpass
 import sys

@@ -14,7 +14,6 @@ import datetime
 
 scriptDir = os.path.dirname(os.path.abspath(__file__))
 templateDir = scriptDir + '/templates'
-print templateDir
 env = Environment(loader=FileSystemLoader(templateDir))
 
 def viewTemplated(templateFile, **args):

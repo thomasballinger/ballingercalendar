@@ -11,6 +11,7 @@ origDir = os.getcwd()
 scriptFile = os.path.abspath(__file__)
 scriptDir = os.path.basename(scriptFile)
 import cmd
+import pretty
 from pprint import pprint
 
 class EditTasksCLI(cmd.Cmd):
@@ -32,6 +33,12 @@ class EditTasksCLI(cmd.Cmd):
     def do_EOF(self, arg):
         print('')
         return True
+
+    def do_prettyHours(self, arg):
+        if not arg:
+            return False
+        (ds1, ds2) = arg.split()
+        return pretty.showWeekly(ds1, ds2)
 
     def do_listtasks(self, arg):
         print self.task_list

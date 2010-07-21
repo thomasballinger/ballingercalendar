@@ -36,6 +36,9 @@ def showWeekly(ds1, ds2):
     task_list = task.createTasks()
     totalHours = datetime.timedelta(0)
     for t in task_list:
+        t.timeToGo = (t.estimatedtime - t.timespent)
+        t.timeTillDue = (t.duedate - datetime.datetime.now())
+    for t in task_list:
         t.weekHours = hours.getWeekHours(t.id, ds1, ds2)
         totalHours += t.weekHours
     weekList = [x for x in task_list if x.weekHours > datetime.timedelta(0)]
@@ -47,8 +50,7 @@ def showWeekly(ds1, ds2):
             assigners[t.assigner] += t.weekHours
     assigners = zip(assigners.keys(), assigners.values())
     assigners.sort(key = lambda t: -t[1])
-#    viewTemplated('weekHours.html', task_list=task_list, week_list=weekList,  assigners=assigners, ds1=ds1, ds2=ds2, td2h=task.timedeltaToHoursString, td2jh=task.timedeltaToJustHoursString, td2d=task.timedeltaToDaysString, zeroHours = datetime.timedelta(0), timesort=sortTasksByTime)
-    viewTemplated('hideshow.html', task_list=task_list, week_list=weekList,  assigners=assigners, ds1=ds1, ds2=ds2, td2h=task.timedeltaToHoursString, td2jh=task.timedeltaToJustHoursString, td2d=task.timedeltaToDaysString, zeroHours = datetime.timedelta(0), timesort=sortTasksByTime)
+    viewTemplated('weekHours.html', task_list=task_list, week_list=weekList,  assigners=assigners, ds1=ds1, ds2=ds2, td2h=task.timedeltaToHoursString, td2jh=task.timedeltaToJustHoursString, td2d=task.timedeltaToDaysString, zeroHours = datetime.timedelta(0), timesort=sortTasksByTime, total_hours=totalHours)
 
 def showTask(taskid):
     tasks = task
@@ -75,4 +77,4 @@ def showOverdue():
 if __name__ == '__main__':
 #    showTasks()
 #    showWeekly('2010-07-12','2010-07-21')
-    showWeekly('2010-07-12','2010-07-21')
+    showWeekly('2010-07-19','2010-07-26')

@@ -46,7 +46,7 @@ def getUnscheduledWorkHours(startdate, enddate):
 
 def getHoursWorked(taskidList):
     if type(taskidList) != type([]):
-        return getHoursWorkedSingle
+        return getHoursWorkedSingle(taskidList)
 
 def getHoursWorkedSingle(taskid):
     '''Returns just a timedelta object representing time spend on task'''

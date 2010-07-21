@@ -16,6 +16,7 @@ import getopt
 import sys
 import string
 import auth
+import webbrowser
 
 (email, password) = auth.getAuthentication()
 spreadsheet = 'tasks'

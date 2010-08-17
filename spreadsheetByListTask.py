@@ -18,7 +18,7 @@ import string
 import auth
 import webbrowser
 
-(email, password) = auth.getAuthentication()
+(email, password) = auth.get_authentication()
 spreadsheet = 'tasks'
 worksheet = 'Sheet1'
 googleCalendarZero = datetime.datetime(1899,12,30)

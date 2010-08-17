@@ -75,5 +75,5 @@ def showOverdue():
 
 if __name__ == '__main__':
 #    showTasks()
-#    showWeekly('2010-07-12','2010-07-21')
+#    SHOWweekly('2010-07-12','2010-07-21')
     showWeekly('2010-07-19','2010-07-26')

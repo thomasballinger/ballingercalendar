@@ -1,7 +1,7 @@
 import os, sys
 import datetime
 import string
-import spreadsheetTask as task
+import spreadsheetByListTask as task
 
 def parseTimedelta(datestring):
     words = datestring.split()

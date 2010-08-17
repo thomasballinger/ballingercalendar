@@ -26,7 +26,7 @@ def getcaptcha(service):
                 service.ProgrammaticLogin(captcha_token, captcha_response)
                 print "Done!"
 
-(username, password) = auth.getAuthentication()
+(username, password) = auth.get_authentication()
 
 service = gdata.apps.service.AppsService(email=username, password=password)
 

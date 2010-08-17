@@ -5,8 +5,8 @@
 import time
 import os, sys, optparse
 import datetime, parse
-import spreadsheetByListTask as task
-import calendarHours as hours
+import gssltask as task
+import calendarhours as hours
 origDir = os.getcwd()
 scriptFile = os.path.abspath(__file__)
 scriptDir = os.path.basename(scriptFile)
@@ -93,7 +93,7 @@ class EditTasksCLI(cmd.Cmd):
     def do_timeLeft(self, arg):
         """Displays time left before a task is due, """
         if not self.selected_task: print('choose a task first'); return
-        self.selected_task.timespent = hours.getHoursWorked(self.selected_task.id)
+        self.selected_task.timespent = hours.get_hours_worked(self.selected_task.id)
         overdue = self.selected_task.duedate - datetime.datetime.now()
         left = self.selected_task.estimatedtime - self.selected_task.timespent
         if self.selected_task.iscompleted:
@@ -288,7 +288,7 @@ class EditTasksCLI(cmd.Cmd):
         if not self.selected_task:
             print 'select a task first'
             return
-        self.selected_task.timespent = hours.getHoursWorked(self.selected_task.id)
+        self.selected_task.timespent = hours.get_hours_worked(self.selected_task.id)
         print self.selected_task.timespent
         self.selected_task.put()
         self.task_list = task.createTasks()
@@ -298,14 +298,14 @@ class EditTasksCLI(cmd.Cmd):
             print 'select a task first'
             return
         if arg and len(arg.split()) % 2 == 0:
-            hours.clockTime(self.selected_task.id,
+            hours.clock_time(self.selected_task.id,
                             title=self.selected_task.name,
                             description=self.selected_task.description,
-                            startDatetime=parse.parseTimeInterval(' '.join(arg.split()[:len(arg.split()/2)])), 
-                            endDatetime=parse.parseTimeInterval(' '.join(arg.split()[arg.split()/2:]))
+                            start_datetime=parse.parseTimeInterval(' '.join(arg.split()[:len(arg.split()/2)])), 
+                            end_datetime=parse.parseTimeInterval(' '.join(arg.split()[arg.split()/2:]))
             )
         else:
-            hours.clockTime(self.selected_task.id, title=self.selected_task.name, description=self.selected_task.description)
+            hours.clock_time(self.selected_task.id, title=self.selected_task.name, description=self.selected_task.description)
         print 'hours clocked'
 
     def do_clear(self, arg):

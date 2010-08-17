@@ -1,9 +1,11 @@
 # hours.py by ThomasBallinger@gmail.com
 """This module contains methods for dealing with hours worked on tasks,
 implemented via the user's main Google calendar."""
-import os
+import re
 import datetime
-try:
+import time
+
+try:      # this is so different versions of python can run this
     from xml.etree import ElementTree
 except ImportError:
     from elementtree import ElementTree
@@ -12,16 +14,10 @@ import gdata.service
 import atom.service
 import gdata.calendar
 import atom
-import getopt
-import sys
-import time
-import auth
-import re
 
-from pprint import pprint
+import auth
 
 (EMAIL, PASSWORD) = auth.get_authentication()
-googleCalendarZero = datetime.datetime(1900, 12, 30)
 ID_STRING_TASK  = 'qyvztaskqyvz'
 ID_STRING_FRONT = 'qyvz'
 ID_STRING_BACK  = 'qyvz'
@@ -36,41 +32,41 @@ def get_client():
     cal_client.ProgrammaticLogin()
     return cal_client
 
-def get_work_hours(startdate, enddate):
-    """Returns a list of (datetime.datetime, datetime.timedelta)
-    pairs describing future work plans"""
-    cal_client = get_client()
-    query = gdata.calendar.service.CalendarEventQuery(
-        'work-schedule', 'private', 'full')
-    raise NotImplementedError('nothing with work hours really works yet')
+#def get_work_hours(startdate, enddate):
+#    """Returns a list of (datetime.datetime, datetime.timedelta)
+#    pairs describing future work plans"""
+#    cal_client = get_client()
+#    query = gdata.calendar.service.CalendarEventQuery(
+#        'work-schedule', 'private', 'full')
+#    raise NotImplementedError('nothing with work hours really works yet')
 
-def getUnscheduledWorkHours(startdate, enddate):
-    """Returns a list of (datetime.datetime, datetime.timedelta)
-    pairs describing future free work hours"""
-    raise NotImplementedError('work hours minus scheduled appointments')
+#def get_unscheduled_work_hours(startdate, enddate):
+#    """Returns a list of (datetime.datetime, datetime.timedelta)
+#    pairs describing future free work hours"""
+#    raise NotImplementedError('work hours minus scheduled appointments')
 
-def getHoursWorked(task_id_list):
+def get_hours_worked(task_id_list):
     """Returns timedelta object for time spend on task"""
     if type(task_id_list) != type([]):
-        return getHoursWorkedSingle(task_id_list)
+        return get_hours_worked_single(task_id_list)
 
-def getHoursWorkedSingle(taskid):
+def get_hours_worked_single(task_id):
     '''Returns just a timedelta object representing time spend on task'''
-    idstring = ID_STRING_TASK + ' ' + ID_STRING_FRONT + taskid + ID_STRING_BACK
+    idstring = ID_STRING_TASK + ' ' + ID_STRING_FRONT + task_id + ID_STRING_BACK
     cal_client = get_client()
     query = gdata.calendar.service.CalendarEventQuery(
         'default', 'private', 'full', idstring)
     feed = cal_client.CalendarQuery(query)
     hours = datetime.timedelta(0)
-    for i, event in zip(range(len(feed.entry)), feed.entry):
+    for event in feed.entry:
         for when in event.when:
-            start = googleCalTimeToDatetime(when.start_time)
-            end =  googleCalTimeToDatetime(when.end_time)
-            td = end - start
-            hours += td
+            start = google_cal_time_to_datetime(when.start_time)
+            end =  google_cal_time_to_datetime(when.end_time)
+            delta = end - start
+            hours += delta
     return hours
 
-def testSearch(text):
+def test_search(text):
     """Searches for text in all events in calendar"""
     cal_client = get_client()
     query = gdata.calendar.service.CalendarEventQuery(
@@ -82,12 +78,11 @@ def testSearch(text):
 def get_week_hours(task_id_list=[], ds1=None, ds2=None):
     """Returns the number of hours spend in a time period working on tasks"""
     if type(task_id_list) != type([]):
-        return get_week_hoursSingle(task_id_list, ds1, ds2)
+        return get_week_hours_single(task_id_list, ds1, ds2)
     if bool(ds1) ^ bool(ds2):
         raise Exception('use both or neither datetime arguments')
     if not ds1:
         raise Exception('not implemented yet')
-    idstring = ID_STRING_TASK
     query = gdata.calendar.service.CalendarEventQuery(
         'default', 'private', 'full', ID_STRING_TASK)
     query.start_min = ds1
@@ -97,28 +92,28 @@ def get_week_hours(task_id_list=[], ds1=None, ds2=None):
     feed = cal_client.CalendarQuery(query)
     result_dict = {}
     for event in feed.entry:
-        id = re.search(
+        task_id = re.search(
             ID_STRING_TASK+' '+ID_STRING_FRONT+'(.*)'+ID_STRING_BACK,
             event.content.text).group(1)
         hours = datetime.timedelta(0)
         for when in event.when:
-            start = googleCalTimeToDatetime(when.start_time)
-            end =  googleCalTimeToDatetime(when.end_time)
-            td = end - start
-            hours += td
-        if id in result_dict:
-            result_dict[id] += hours
+            start = google_cal_time_to_datetime(when.start_time)
+            end =  google_cal_time_to_datetime(when.end_time)
+            delta = end - start
+            hours += delta
+        if task_id in result_dict:
+            result_dict[task_id] += hours
         else:
-            result_dict[id] = hours
+            result_dict[task_id] = hours
     return result_dict
 
-def get_week_hoursSingle(taskid, ds1=None, ds2=None):
+def get_week_hours_single(task_id, ds1=None, ds2=None):
     """Returns the number of hours worked in a time period on a task"""
     if bool(ds1) ^ bool(ds2):
         raise Exception('use both or neither datetime arguments')
     if not ds1:
         raise Exception('not implemented yet')
-    idstring = ID_STRING_TASK + ' ' + ID_STRING_FRONT + taskid + ID_STRING_BACK
+    idstring = ID_STRING_TASK + ' ' + ID_STRING_FRONT + task_id + ID_STRING_BACK
     cal_client = get_client()
     query = gdata.calendar.service.CalendarEventQuery(
         'default', 'private', 'full', idstring)
@@ -127,57 +122,57 @@ def get_week_hoursSingle(taskid, ds1=None, ds2=None):
     feed = cal_client.CalendarQuery(query)
 
     hours = datetime.timedelta(0)
-    for i, event in zip(range(len(feed.entry)), feed.entry):
+    for event in feed.entry:
         for when in event.when:
-            start = googleCalTimeToDatetime(when.start_time)
-            end =  googleCalTimeToDatetime(when.end_time)
+            start = google_cal_time_to_datetime(when.start_time)
+            end =  google_cal_time_to_datetime(when.end_time)
             td = end - start
             hours += td
-            print event.title.text, start,end
+            print event.title.text, start, end
     return hours
     
-def googleCalTimeToDatetime(gcaltime):
+def google_cal_time_to_datetime(gcaltime):
     """Returns a python datetime object from a google calendar time"""
     try:
-        (date, time) = gcaltime.split('T')
-    except:
+        (gcal_date, gcal_time) = gcaltime.split('T')
+    except ValueError:
         (year, month, day) = gcaltime.split('-')
         return datetime.datetime(int(year), int(month), int(day))
-    (time, timezone) = time.split('-')
-    (year, month, day) = date.split('-')
-    (hours, minutes, seconds) = time.split(':')
+    (gcal_time, timezone) = gcal_time.split('-')
+    (year, month, day) = gcal_date.split('-')
+    (hours, minutes, seconds) = gcal_time.split(':')
     (seconds, milliseconds) = seconds.split('.')
     return datetime.datetime(
         int(year), int(month), int(day), int(hours),
         int(minutes), int(seconds))
 
-def clockTime(taskid, title=None, description='',
-         startDatetime=None, endDatetime=None):
+def clock_time(task_id, title=None, description='',
+         start_datetime=None, end_datetime=None):
     """Clock most recent full hour as being spent on this task"""
     if title is None:
         title = 'hours clocked'
     cal_client = get_client()
     content = description + '/n' + ID_STRING_TASK+' '+ \
-        ID_STRING_FRONT + taskid + ID_STRING_BACK
+        ID_STRING_FRONT + task_id + ID_STRING_BACK
     event = gdata.calendar.CalendarEventEntry()
     event.title = atom.Title(text=title)
     event.content = atom.Content(text=content)
 
-    if startDatetime is None:
+    if start_datetime is None:
         # Use current time for the end_time and have the event last 1 hour
         start_time = time.strftime('%Y-%m-%dT%H:00:00.000Z',
             time.gmtime(time.time() - 3600))
         end_time = time.strftime('%Y-%m-%dT%H:00:00.000Z',
             time.gmtime(time.time()))
-    elif endDatetime is None:
+    elif end_datetime is None:
         end_time = time.strftime('%Y-%m-%dT%H:%M:%S.000Z',
             time.gmtime(
-                (startDatetime + datetime.timedelta(0,3600)).timetuple()))
+                (start_datetime + datetime.timedelta(0,3600)).timetuple()))
     else:
         start_time = time.strftime('%Y-%m-%dT%H:%M:%S.000Z',
-            time.gmtime(startDatetime.timetuple()))
+            time.gmtime(start_datetime.timetuple()))
         end_time = time.strftime('%Y-%m-%dT%H:%M:%S.000Z',
-            time.gmtime(endDatetime.timetuple()))
+            time.gmtime(end_datetime.timetuple()))
     event.when.append(gdata.calendar.When(start_time=start_time,
         end_time=end_time))
     new_event = cal_client.InsertEvent(

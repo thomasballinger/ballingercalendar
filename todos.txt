@@ -1,11 +1,6 @@
 
 
 Before attempting web interface:
--test how retrieving long calendar feeds works.
-  If can't get over 50 events (reasonable max for a week) then
-  can't use for getWeekHours.
--Also check out limits for google spreadsheet list feed; should
-  we stop using grab all events type things?
 -calendarHours needs method to get hours for several ids at once
 -calendarHours should use this method for faster getWeekHours
 -createTasks already works correctly for web interface

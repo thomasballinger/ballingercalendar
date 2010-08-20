@@ -4,8 +4,8 @@
 
 import os, sys, optparse
 import datetime
-import calendarHours as hours
-import spreadsheetByListTask as task
+import calendarhours as hours
+import gssltask as task
 from pprint import pprint
 from jinja2 import Environment, FileSystemLoader
 import webbrowser

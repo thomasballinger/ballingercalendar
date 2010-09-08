@@ -164,16 +164,16 @@ class EditTasksCLI(cmd.Cmd):
         self.task_list = task.createTasks()
         print 'estimated time:',self.selected_task.estimatedtime
 
-    def do_timeSpent(self, arg):
+    def do_timespent(self, arg):
         if not self.selected_task: print('choose a task first'); return
         if not arg:
-            print 'time spend:',self.selected_task.timeSpent
+            print 'time spend:',self.selected_task.timespent
             return
         interval = parse.parseTimeInterval(arg)
         self.selected_task.timeSpend.append()
         self.selected_task.put()
         self.task_list = task.createTasks()
-        print 'time spend:',self.selected_task.timeSpent
+        print 'time spend:',self.selected_task.timespent
 
     def do_wait(self, arg):
         if not self.selected_task: print('choose a task first'); return
@@ -238,7 +238,6 @@ class EditTasksCLI(cmd.Cmd):
         pprint([t for t in self.task_list if t.iscompleted])
 
     def do_listInProgress(self, arg):
-        
         task_list = [t for t in self.task_list if not t.iscompleted]
         task_list.sort(key=lambda t: datetime.timedelta(t.priority*365*10) + (t.duedate - datetime.datetime.now()))
         maxTaskLength = max(len(t.name) for t in task_list)
@@ -298,14 +297,19 @@ class EditTasksCLI(cmd.Cmd):
             print 'select a task first'
             return
         if arg and len(arg.split()) % 2 == 0:
-            hours.clock_time(self.selected_task.id,
-                            title=self.selected_task.name,
-                            description=self.selected_task.description,
-                            start_datetime=parse.parseTimeInterval(' '.join(arg.split()[:len(arg.split()/2)])), 
-                            end_datetime=parse.parseTimeInterval(' '.join(arg.split()[arg.split()/2:]))
+            hours.clock_time(
+                    self.selected_task.id,
+                    title=self.selected_task.name,
+                    description=self.selected_task.description,
+                    start_datetime=parse.parseTimeInterval(' '.join(arg.split()[:len(arg.split()/2)])), 
+                    end_datetime=parse.parseTimeInterval(' '.join(arg.split()[arg.split()/2:]))
             )
         else:
-            hours.clock_time(self.selected_task.id, title=self.selected_task.name, description=self.selected_task.description)
+            hours.clock_time(
+                    self.selected_task.id,
+                    title=self.selected_task.name,
+                    description=self.selected_task.description)
+
         print 'hours clocked'
 
     def do_clear(self, arg):

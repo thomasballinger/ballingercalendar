@@ -4,12 +4,12 @@
 
 import os, sys, optparse
 
-import calendarHours as hours
-import spreadsheetByListTask as task
+import calendarhours as hours
+import gssltask as task
 
 task_list = task.createTasks()
 for t in task_list:
     print 'updating',t.name,t.timespent,
-    t.timespent = hours.getHoursWorked(t.id)
+    t.timespent = hours.get_hours_worked(t.id)
     print 'to', t.timespent
     t.put()

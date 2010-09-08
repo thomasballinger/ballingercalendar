@@ -6,7 +6,7 @@ import os, sys, optparse
 import datetime
 
 import calendarHours as hours
-import spreadsheetTaskByList as task
+import gssltask as task
 from pprint import pprint
 
 def updateHours():

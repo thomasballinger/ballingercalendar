@@ -17,9 +17,17 @@ templateDir = scriptDir + '/templates'
 env = Environment(loader=FileSystemLoader(templateDir))
 
 def viewTemplated(templateFile, **args):
+    if not 'filename' in args:
+        (n, fname) = tempfile.mkstemp()
+        f = os.fdopen(n, "w")
+    else:
+        if 'filename' in args and args['filename'] == None:
+            (n, fname) = tempfile.mkstemp()
+            f = os.fdopen(n, "w")
+        else:
+            fname = args['filename']
+            f = open(fname, "w")
     template = env.get_template(templateFile)
-    (n, fname) = tempfile.mkstemp()
-    f = os.fdopen(n, "w")
     f.write(template.render(**args))
     f.close()
     webbrowser.open(fname)
@@ -31,7 +39,7 @@ def sortTasksByTime(task_list):
     task_list.sort(key = lambda t: -t.weekHours)
     return task_list
 
-def showWeekly(ds1, ds2):
+def showWeekly(ds1, ds2, filename=None):
     task_list = task.createTasks()
     totalHours = datetime.timedelta(0)
     for t in task_list:
@@ -49,7 +57,17 @@ def showWeekly(ds1, ds2):
             assigners[t.assigner] += t.weekHours
     assigners = zip(assigners.keys(), assigners.values())
     assigners.sort(key = lambda t: -t[1])
-    viewTemplated('weekHours.html', task_list=task_list, week_list=weekList,  assigners=assigners, ds1=ds1, ds2=ds2, td2h=task.timedeltaToHoursString, td2jh=task.timedeltaToJustHoursString, td2d=task.timedeltaToDaysString, zeroHours = datetime.timedelta(0), timesort=sortTasksByTime, total_hours=totalHours)
+    viewTemplated('weekHours.html', filename=filename,
+            task_list=task_list,
+            week_list=weekList,
+            assigners=assigners,
+            ds1=ds1, ds2=ds2,
+            td2h=task.timedeltaToHoursString,
+            td2jh=task.timedeltaToJustHoursString,
+            td2d=task.timedeltaToDaysString,
+            zeroHours = datetime.timedelta(0),
+            timesort=sortTasksByTime,
+            total_hours=totalHours)
 
 def showTask(taskid):
     tasks = task

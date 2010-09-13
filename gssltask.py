@@ -40,9 +40,6 @@ class Task:
         self.iscompleted = False
         self.row = None
 
-    def put(self):
-        updateTask(self)
-    
     def __repr__(self):
         return 'task: '+self.name+' '+str(self.duedate)
 
@@ -50,6 +47,8 @@ class Task:
         td = b.duedate - a.duedate
         return td.days * 24*60*60 + td.seconds
 
+    def put(self):
+        updateTask(self)
     def getPropDict(self):
         propDict = {
             'id' : self.id ,
@@ -101,6 +100,7 @@ def getClient():
     try:
         gd_client.ProgrammaticLogin()
     except gdata.service.CaptchaRequired:
+        print gdata.service.CaptchaRequired, 'exception raised'
         captcha_token = gd_client._GetCaptchaToken()
         url = gd_client._GetCaptchaURL()
         print "Please go to this URL:"

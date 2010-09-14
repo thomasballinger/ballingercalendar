@@ -1,4 +1,4 @@
-#!/projects/schiz/software/LabPython/Python-2.6.3/python
+#!/usr/bin/python
 # edittask
 # being updated for use with spreadsheet-based tasks
 # thomasballinger@gmail.com
@@ -243,6 +243,7 @@ class EditTasksCLI(cmd.Cmd):
     def do_listInProgress(self, arg):
         task_list = [t for t in self.task_list if not t.iscompleted]
         task_list.sort(key=lambda t: datetime.timedelta(t.priority*365*10) + (t.duedate - datetime.datetime.now()))
+        task_list.reverse()
         maxTaskLength = max(len(t.name) for t in task_list)
         print ('task name'+' '*maxTaskLength)[:maxTaskLength]+ ' p' + '   ' + 'time left' + '   ' + 'time till due'
         for t in task_list:

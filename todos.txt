@@ -1,3 +1,27 @@
+Integration with PNL Task Tracker:
+-create task (create ticket as well)
+-when ticket reassigned, removed?  No.
+
+New Database:
+id
+whose
+name (matches task tracker)
+description (matches task tracker)
+duedate (remove this field)
+priority (now 1-5)
+estimatedtime = 
+
+Don't seek integration with old events!
+create good record of time up until this Friday, save it, then start using new system
+
+use cases:
+-record time spend on task
+-create new task
+-report time spend working
+-report time spend working on what tickets
+
+
+
 
 
 Before attempting web interface:

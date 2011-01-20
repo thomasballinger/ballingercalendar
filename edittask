@@ -41,7 +41,8 @@ class EditTasksCLI(cmd.Cmd):
         (ds1, ds2) = splitargs[:2]
         if len(splitargs) == 3:
             filename = splitargs[2]
-        return pretty.showWeekly(ds1, ds2, filename=filename)
+            return pretty.showWeekly(ds1, ds2, filename=filename)
+        return pretty.showWeekly(ds1, ds2)
 
     def do_listtasks(self, arg):
         print self.task_list

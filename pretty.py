@@ -69,6 +69,37 @@ def showWeekly(ds1, ds2, filename=None):
             timesort=sortTasksByTime,
             total_hours=totalHours)
 
+def showInProgress(filename=None):
+    task_list = task.createTasks()
+    totalHours = datetime.timedelta(0)
+    for t in task_list:
+        t.timeToGo = (t.estimatedtime - t.timespent)
+        t.timeTillDue = (t.duedate - datetime.datetime.now())
+    for t in task_list:
+        t.weekHours = hours.get_week_hours(t.id, ds1, ds2)
+        totalHours += t.weekHours
+    weekList = [x for x in task_list if x.weekHours > datetime.timedelta(0)]
+    assigners = {}
+    for t in weekList:
+        if not t.assigner in assigners:
+            assigners[t.assigner] = t.weekHours
+        else:
+            assigners[t.assigner] += t.weekHours
+    assigners = zip(assigners.keys(), assigners.values())
+    assigners.sort(key = lambda t: -t[1])
+    viewTemplated('weekHours.html', filename=filename,
+            task_list=task_list,
+            week_list=weekList,
+            assigners=assigners,
+            ds1=ds1, ds2=ds2,
+            td2h=task.timedeltaToHoursString,
+            td2jh=task.timedeltaToJustHoursString,
+            td2d=task.timedeltaToDaysString,
+            zeroHours = datetime.timedelta(0),
+            timesort=sortTasksByTime,
+            total_hours=totalHours)
+
+
 def showTask(taskid):
     tasks = task
     viewTemplated('notImplemented.html', task_list)

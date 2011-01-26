@@ -1,10 +1,14 @@
 # task.py by ThomasBallinger@gmail.com
 
 import datetime
-import urllib
 import auth
 
 USER = 'tomb'
+SERVER = 'http://pnl-t75-1.bwh.harvard.edu:9000'
+
+def getPassword():
+    user, password = auth.get_authentication()
+    return password
 
 class Task:
     """Represents a task"""
@@ -85,85 +89,4 @@ def displayTask(task):
 
 def updateTimeSpent(task):
     raise NotImplementedError('check google calendar for matching events')
-
-def getPassword():
-    user, password = auth.get_authentication()
-    return password
-
-def getUserID(user):
-    """Returns an a string id that is the user's Task Tracker ID"""
-    query = user
-    data = urllib.urlencode({"username" : query, "user" : USER, "password" : getPassword()})
-    f = urllib.urlopen("http://pnl-t75-1.bwh.harvard.edu:9000/api/find_user/", data)
-    s = f.read()
-    f.close()
-    return s
-
-def create_ticket(queue, title, submitter_email=None, assigned_to=None, priority=None):
-    """Creates a new Task Tracker Ticket"""
-    datadict = {"username" : query, "user" : USER, "password" : getPassword()}
-    if submitter_email:
-        datadict["submitter_email"] = submitter_email
-    if assigned_to:
-        try:
-            trash = int(assigned_to)
-            datadict["assigned_to"] = assigned_to
-        except ValueError:
-            datadict["assigned_to"] = getUserId(assigned_to)
-    if priority:
-        datadict["priority"] = priority
-    data = urllib.urlencode()
-    f = urllib.urlopen("http://pnl-t75-1.bwh.harvard.edu:9000/api/find_user/", data)
-    s = f.read()
-    f.close()
-    return s
-
-def delete_ticket(ticket, confirm):
-    """Entirely deletes the ticket"""
-    raise NotImplemented("This could be dangerous (but wrong permissions anyway)")
-
-def hold_ticket(ticket):
-    """Places a ticket on hold, preventing it from being escalated"""
-    raise NotImplemented("I don't think we use this functionality")
-
-def unhold_ticket(ticket):
-    """Removes a ticket from hold"""
-    raise NotImplemented("I don't think we use this functionality")
-
-def getUserID(user):
-    """Returns an a string id that is the user's Task Tracker ID"""
-    query = user
-    data = urllib.urlencode({"username" : query, "user" : USER, "password" : getPassword()})
-    f = urllib.urlopen("http://pnl-t75-1.bwh.harvard.edu:9000/api/find_user/", data)
-    s = f.read()
-    f.close()
-    return s
-
-def add_followup(ticket, message, public=None):
-    """Returns an a string id that is the user's Task Tracker ID"""
-    query = user
-    datadict = {"username" : query, "user" : USER, "password" : getPassword()}
-    if submitter_email:
-        datadict["submitter_email"] = submitter_email
-    data = urllib.urlencode(datadict)
-    f = urllib.urlopen("http://pnl-t75-1.bwh.harvard.edu:9000/api/find_user/", data)
-    s = f.read()
-    f.close()
-    return s
-
-
-if __name__ == '__main__':
-    #newTask('asdf asdfas dadsfati ng')
-    #task_list = createTasks()
-    #import pprint
-    #pprint.pprint(task_list)
-    #for task in task_list:
-    #    task.put()
-    #from pprint import pprint
-    #pprint(createTasks())
-
-    # Search the Vaults of Parnassus for "XMLForms".
-    # First, encode the data.
-    #import pudb; pudb.set_trace()
-    print getUserID('tomb')
 

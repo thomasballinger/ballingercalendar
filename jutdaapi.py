@@ -100,6 +100,7 @@ class JutdaSession():
         s = f.read()
         f.close()
 
+        # TODO: move this to JutdaTicket code class method?
         regexcode = (r"<tr class='row_\w+ row_hover'>\s*" +
                 r"<th>(.*)</th>\s*" +
                 r"<td>(.*)</td>\s*" +
@@ -112,22 +113,102 @@ class JutdaSession():
                 r"</tr>"
                r"")
         screenscrapes = re.findall(regexcode, s)
-        tickets = [JutdaTicket(scrape) for scrape in screenscrapes]
+        tickets = [JutdaTicket(tablescreenscrape=scrape) for scrape in screenscrapes]
         return tickets
+
+    def edit_ticket(self, ticket_id, title=None, queue=None, submitter_email=None, description=None, priority=None,
+            append_to_title=None, append_to_description=None):
+        """Edits a ticket."""
+        # first, sanitize data
+        ticket_id = int(ticket_id)
+        if priority:
+            priority = int(priority)
+
+        # next, learn the current status of the ticket
+        try:
+            f = self.opener.open(SERVER+"/tickets/"+str(ticket_id))
+        except urllib2.HTTPError:
+            return False
+        s = f.read()
+
+        ticket = JutdaTicket(detailscreenscrape=s)
+        if title:
+            ticket.title = title
+        if queue:
+            ticket.queue = queue
+        if submitter_email:
+            ticket.submitter_email = submitter_email
+        if description:
+            ticket.description = description
+        if priority:
+            ticket.priority = priority
+        if append_to_title:
+            ticket.title += append_to_title
+        if append_to_description:
+            ticket.description += append_to_description
+        datadict = {
+                'title': ticket.title,
+                'queue': ticket.queue,
+                'submitter_email' : ticket.submitter_email,
+                'description' : ticket.description,
+                'priority' : ticket.priority}
+        data = urllib.urlencode(datadict)
+        f = self.opener.open(SERVER+"/tickets/"+str(ticket.ticket_id)+"/edit/", data)
+        s = f.read()
+        return True
+
 def get_tickets(**argsdict):
     """Convenience function for JutdaSession().get_tickets()"""
     return JutdaSession().get_tickets(**argsdict)
+
+def edit_ticket(*args, **argsdict):
+    """Convenience function for JutdaSession().edit_ticket()"""
+    return JutdaSession().edit_ticket(*args, **argsdict)
+
 class JutdaTicket():
-    """Represents a task from the Jutda Helpdesk"""
-    def __init__(self, screenscrape):
-        (number, _, priority, title, queue, status, created, owner) = screenscrape
-        ((self.url, self.title,),) = re.findall(r"<a\s*href='(\S+)'>(.+)</a>", title)
-        self.owner = owner
-        self.queue = queue
-        self.status = status
-        self.create_date = dateutilparser.parse(re.findall(r"<span title='(.*)'>.*</span>", created)[0])
-        self.priority = int(re.findall(r"<span class='.*'>(\d)</span>", priority)[0])
-        self.ticket_id = int(re.findall(r"<a href='\S+'>\[.*-(\d+)\]</a>", number)[0])
+    """Represents a ticket from the Jutda Helpdesk"""
+    def __init__(self, tablescreenscrape=None, detailscreenscrape=None):
+        if not (tablescreenscrape or detailscreenscrape):
+            raise ValueError("need information about the ticket from the server")
+        if tablescreenscrape:
+            (number, _, priority, title, queue, status, created, owner) = tablescreenscrape
+            ((self.url, self.title,),) = re.findall(r"<a\s*href='(\S+)'>(.+)</a>", title)
+            self.owner = owner
+            self.queue = queue
+            self.status = status
+            self.creation_date = dateutilparser.parse(re.findall(r"<span title='(.*)'>.*</span>", created)[0])
+            self.priority = int(re.findall(r"<span class='.*'>(\d)</span>", priority)[0])
+            self.ticket_id = int(re.findall(r"<a href='\S+'>\[.*-(\d+)\]</a>", number)[0])
+        elif detailscreenscrape:
+            s = detailscreenscrape
+            followups = re.findall(r"<div class='followup'>\s*<div class='title'>(.*)<span class='byline'>by (.*) " +
+                                   r"<span title='(.*)'>.*ago</span>.*</span></div>\s*(.*)\s+</div>", s)
+            self.followups = []
+            for followup in followups:
+                what, whom, when, body = followup
+                f = {}
+                f['action'] = what
+                f['whom'] = whom
+                f['when'] = dateutilparser.parse(when)
+                f['body'] = body
+                self.followups.append(f)
+            self.ticket_id = int(re.findall(r"href='/tickets/(\d+)/edit/", s)[0])
+            self.creation_date = dateutilparser.parse(re.findall(r"<th>Submitted On</th>\s*<td>(.*)\(.*</td>", s)[0])
+            self.priority = int(re.findall(r"<th>Priority</th>\s*<td>(\d)\.\s*", s)[0])
+            self.copies_to = re.findall(r"<th>Copies To</th>\s*<td>([^<>]*)<", s)[0]
+            self.description = re.findall(r"<th colspan='2'>Description</th>\s*</tr>\s*<tr class='[^<>]+'>\s*<td colspan='2'>(.+?)</td>", s, re.DOTALL)[0]
+            self.description = re.sub(r"<br\s*/>", r"\n", self.description)
+            self.title = re.findall(r"<dd><input type='text' name='title' value='(.*)' /></dd>", s)[0]
+            self.queue = find_queue(re.findall(r"<tr class='row_columnheads'><th colspan='2'>Queue: (.*)</th></tr>", s)[0])
+            self.submitter_email = re.findall(r"<th>Submitter E-Mail</th>\s*<td>(.*)</td>", s)[0]
+            self.url = "/tickets/"+str(self.ticket_id)
+            # may be unassigned
+            self.owner = re.findall(r"<th>Assigned To</th>\s+<td>([^<>]+)<", s)[0].strip()
+            if 'Unassigned' in self.owner:
+                self.owner = False
+
+            # not always there
+            self.resolution = None
 
     def __repr__(self):
         return '<'+' '.join([self.title, self.owner, str(self.ticket_id), self.url])+'>'
@@ -147,7 +228,7 @@ def find_queue(queue):
         return False
 
 # the methods below use the jutdahelpdesk api very directly
-def create_ticket(queue, title, body, submitter_email=None, assigned_to=None, priority=None):
+def create_ticket(queue, title, bmitter_email=None, assigned_to=None, priority=None):
     """Returns the ID of a newly created task"""
     datadict = {"queue" : queue, "body" : body, "title" : title, "user" : USER, "password" : getPassword()}
     if submitter_email:
@@ -234,13 +315,16 @@ def find_user(user):
 
 if __name__ == '__main__':
     #import pudb; pudb.set_trace()
-    print find_user('tomb')
-    print find_user('fred')
-    print list_queues()
-    newticket = create_ticket(u'3', 'Test task1 by tom for: Ryan', 'test text')
-    print newticket
-    print delete_ticket(newticket, 'yes, really')
-    pass
-    from pprint import pprint
+    #print find_user('tomb')
+    #print find_user('fred')
+    #print list_queues()
+    #newticket = create_ticket(u'3', 'Test task1 by tom for: Ryan', 'test text')
+    #print newticket
+    #print delete_ticket(newticket, 'yes, really')
+    #pass
+    #from pprint import pprint
     #pprint(session.get_tickets())
-    pprint(get_tickets(sort='title', sortreverse='on', queues=['3']))
+    #pprint(get_tickets(sort='title', sortreverse='on', queues=['3']))
+    #session = JutdaSession()
+    #session.edit_ticket(105, append_to_title='wet')
+    edit_ticket(105, append_to_title='wet')

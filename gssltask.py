@@ -75,7 +75,7 @@ class Task:
 
 def datetimeToGoogleNum(dt):
     #print dt,'of type',type(dt),'is the input to datetimeToGoogle'
-    td = (dt - googleCalendarZero) 
+    td = (dt - googleCalendarZero)
     #print 'producing',td,'which is in seconds from', googleCalendarZero 
     gdays = td.days + float(td.seconds) / (24 * 60 * 60)
     return gdays

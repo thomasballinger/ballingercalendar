@@ -288,6 +288,10 @@ class EditTasksCLI(cmd.Cmd):
         "doesn't do anything yet"
         return parse.parseTimeInterval(arg)
 
+    def do_debug(self, arg):
+        "enters debug mode"
+        import pudb; pudb.set_trace()
+
     def do_updateTimeSpent(self, arg):
         if not self.selected_task:
             print 'select a task first'

@@ -10,27 +10,31 @@ def getPassword():
     user, password = auth.get_authentication()
     return password
 
-class Task:
+class Task: # should inherit from base abstract class, which has all att's common to both implementations
     """Represents a task"""
     def __init__(self):
         """Creates a local new task"""
-        self.id = ''
-        self.whose = 'no one'
-        self.name = 'unnamed'
-        self.description = 'no description'
-        self.duedate = datetime.datetime.now()
-        self.assigner = 'no one'
-        self.priority = 9
-        self.estimatedtime = datetime.timedelta(0,60*60)
-        self.timespent = datetime.timedelta(0)
-        self.starttime = datetime.datetime.now()
-        self.waitids = []
-        self.isappointment = False
-        self.iscompleted = False
-        self.row = None
+        self.id = '' # this is the id used in calendars, etc.
+        self._ticket_id # this is an implementation detail of jutda task tracker
+        self.whose = 'no one' # who task is assigned to, in this implementation
+        self.name = 'unnamed' # ticket title, in this implementation
+        self.description = 'no description' # unencoded version, so no <br>'s (but stil <a href>x<a>'s)
+                                            # also includes followup data, appended to this in a nice print format
+        self.duedate = datetime.datetime.now() #not a field in Jutda, so should be deleted.
+        self.assigner = 'no one' # capitalized, should be found in every title (like "Multiword Title F/for: Person")
+        self.priority = 9 # number from 0 to 9, but stored as a number from 1 to 5.  Always (n-1)*2 or (n+1)/2
+        self.estimatedtime = datetime.timedelta(0,60*60) # not a field stored, so should be deleted
+        self.timespent = datetime.timedelta(0) # not editable permenently, but saves data from hours
+        self.starttime = datetime.datetime.now() # ticket creation time in this implementation 
+        self.waitids = [] # doesn't exist in this implementation
+        self.isappointment = False # always false for these
+        self.iscompleted = False # directly maps to status, but marking as complete requires a message
+        self.row = None # should be deleted
+        self.followups = [] # not likely to be used, since other implementation doesn't have it.
 
     def __repr__(self):
-        return 'task: '+self.name
+        """not for general use"""
+        return 'jutdatask: '+self.name
 
     def __cmp__(a,b):
         td = b.duedate - a.duedate
@@ -40,7 +44,7 @@ class Task:
         updateTask(self)
 
 def createTasks():
-    '''Returns a (full) list of task objects'''
+    """Returns a (full) list of task objects"""
     gd_client = getClient()
     (spreadsheetID, worksheetID) = getTasksIDs(gd_client)
     cellsFeed = gd_client.GetCellsFeed(spreadsheetID, worksheetID)
@@ -64,7 +68,11 @@ def createTasks():
     return tasks
 
 def updateTask(task):
-    """Updates the database task with local information"""
+    """Updates the database task with local information, perhaps creating a new one"""
+    # First check to see if task exists
+    # If so, check that things have actually changed
+    # If so, edit through the api for minor things,
+    # otherwise use the detail scrape interface.
     raise NotImplementedError('delete that row, move everything up')
 
 def importanceUrgencyGraph(task_list):
@@ -75,12 +83,16 @@ def importanceUrgencyGraph(task_list):
     return [[x.name,[x.duedate,x.priority]] for x in task_list]
 
 def deleteTask(task):
-    raise NotImplementedError('delete that row, move everything up')
+    """Deletes the task via the api"""
+    raise NotImplementedError('Easy to implement, a bit dangerous though')
 
-def newTask(name):
+def newTask(name, whose=None):
+    """Creates a new ticket in the database too"""
     t = Task()
+    if whose:
+        # finduser api call to see if user exists
+        t.whose = whose
     t.name = name
-    t.id = ''
     updateTask(t)
     return t
 

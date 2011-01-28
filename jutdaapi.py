@@ -49,7 +49,7 @@ class JutdaSession():
 
         sort: created, title, queue, status, priority, owner
         owners: list of owner ids
-        statuses: list of ['open', 'reopened', 'resolved']
+        statuses: list of ['open', 'reopened', 'resolved', 'closed']
         queues: list of queue ids
         keywords: list of words
 
@@ -116,6 +116,15 @@ class JutdaSession():
         tickets = [JutdaTicket(tablescreenscrape=scrape) for scrape in screenscrapes]
         return tickets
 
+    def get_detailed_ticket(self, ticket_id):
+        """Gets a ticket with description and followup information"""
+        try:
+            f = self.opener.open(SERVER+"/tickets/"+str(ticket_id))
+        except urllib2.HTTPError:
+            return False
+        s = f.read()
+        ticket = JutdaTicket(detailscreenscrape=s)
+
     def edit_ticket(self, ticket_id, title=None, queue=None, submitter_email=None, description=None, priority=None,
             append_to_title=None, append_to_description=None):
         """Edits a ticket."""
@@ -125,13 +134,7 @@ class JutdaSession():
             priority = int(priority)
 
         # next, learn the current status of the ticket
-        try:
-            f = self.opener.open(SERVER+"/tickets/"+str(ticket_id))
-        except urllib2.HTTPError:
-            return False
-        s = f.read()
-
-        ticket = JutdaTicket(detailscreenscrape=s)
+        ticket = self.get_detailed_ticket(ticket_id)
         if title:
             ticket.title = title
         if queue:
@@ -165,6 +168,10 @@ def edit_ticket(*args, **argsdict):
     """Convenience function for JutdaSession().edit_ticket()"""
     return JutdaSession().edit_ticket(*args, **argsdict)
 
+def get_detailed_ticket(ticket_id):
+    """Convenience function for JutdaSession().get_detailed_ticket()"""
+    return JutdaSession().get_detailed_ticket(ticket_id)
+
 class JutdaTicket():
     """Represents a ticket from the Jutda Helpdesk"""
     def __init__(self, tablescreenscrape=None, detailscreenscrape=None):
@@ -175,7 +182,9 @@ class JutdaTicket():
             ((self.url, self.title,),) = re.findall(r"<a\s*href='(\S+)'>(.+)</a>", title)
             self.owner = owner
             self.queue = queue
-            self.status = status
+            self.status = status.lower()
+            if not status in JutdaSession.status_dict:
+                raise('Bad status scraped: '+status+' not in '+str(JutdaSession.status_dict))
             self.creation_date = dateutilparser.parse(re.findall(r"<span title='(.*)'>.*</span>", created)[0])
             self.priority = int(re.findall(r"<span class='.*'>(\d)</span>", priority)[0])
             self.ticket_id = int(re.findall(r"<a href='\S+'>\[.*-(\d+)\]</a>", number)[0])
@@ -202,6 +211,15 @@ class JutdaTicket():
             self.queue = find_queue(re.findall(r"<tr class='row_columnheads'><th colspan='2'>Queue: (.*)</th></tr>", s)[0])
             self.submitter_email = re.findall(r"<th>Submitter E-Mail</th>\s*<td>(.*)</td>", s)[0]
             self.url = "/tickets/"+str(self.ticket_id)
+            if re.search(r"<input type='radio' name='new_status' value='1' id='st_open' checked='checked'>", s):
+                self.status='open'
+            elif re.search(r"<input type='radio' name='new_status' value='3' id='st_resolved' checked='checked'>", s):
+                self.status='resolved'
+            elif re.search(r"<input type='radio' name='new_status' value='4' id='st_closed' checked='checked'>", s):
+                self.status='closed'
+
+            if not status in JutdaSession.status_dict:
+                raise('Bad status scraped: '+status+' not in '+str(JutdaSession.status_dict))
             # may be unassigned
             self.owner = re.findall(r"<th>Assigned To</th>\s+<td>([^<>]+)<", s)[0].strip()
             if 'Unassigned' in self.owner:
@@ -228,7 +246,7 @@ def find_queue(queue):
         return False
 
 # the methods below use the jutdahelpdesk api very directly
-def create_ticket(queue, title, bmitter_email=None, assigned_to=None, priority=None):
+def create_ticket(queue, title, body, submitter_email=None, assigned_to=None, priority=None):
     """Returns the ID of a newly created task"""
     datadict = {"queue" : queue, "body" : body, "title" : title, "user" : USER, "password" : getPassword()}
     if submitter_email:

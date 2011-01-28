@@ -124,6 +124,7 @@ class JutdaSession():
             return False
         s = f.read()
         ticket = JutdaTicket(detailscreenscrape=s)
+        return ticket
 
     def edit_ticket(self, ticket_id, title=None, queue=None, submitter_email=None, description=None, priority=None,
             append_to_title=None, append_to_description=None):
@@ -218,7 +219,7 @@ class JutdaTicket():
             elif re.search(r"<input type='radio' name='new_status' value='4' id='st_closed' checked='checked'>", s):
                 self.status='closed'
 
-            if not status in JutdaSession.status_dict:
+            if not self.status in JutdaSession.status_dict:
                 raise('Bad status scraped: '+status+' not in '+str(JutdaSession.status_dict))
             # may be unassigned
             self.owner = re.findall(r"<th>Assigned To</th>\s+<td>([^<>]+)<", s)[0].strip()

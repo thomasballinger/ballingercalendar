@@ -58,6 +58,7 @@ class Task(abstracttask.Task): # should inherit from base abstract class, which 
             return False
         if not a.submitter_email == b.submitter_email:
             return False
+        return True
 
     def put(self):
         updateTask(self)
@@ -110,7 +111,7 @@ def ticketToTask(ticket):
     task.sumbitter_email = ticket.submitter_email
     if not task.submitter_email:
         task.submitter_email = None
-    task.id = 't_'+ticket.ticket_id
+    task.id = 't_'+str(ticket.ticket_id)
     task.isappointment = False
     status = ticket.status
     if 'resolved' in status or 'closed' in status:
@@ -159,22 +160,36 @@ def deleteTask(task):
     """Deletes the task via the api"""
     return jutdaapi.delete_ticket(task._ticket_id, 'yep, i really want to do this')
 
-def newTask(name, body, assigner, priority=None, submitter_email=None, whose=None):
+def newTask(name, description, assigner, priority=None, submitter_email=None, whose=None):
     """Creates a new ticket in the database too"""
     if whose:
         user_id = jutdaapi.find_user(whose)
         if not user_id:
             raise ValueError('bad whose assignment: '+str(whose))
     title = name + ' for: '+assigner
-    priority = (priority + 2) / 2
-    ticket_id = jutdaapi.create_ticket(3, title, description,
+    if priority != None:
+        priority = (priority + 2) / 2
+    RA_queue = 3
+    ticket_id = jutdaapi.create_ticket(RA_queue, title, description,
             priority=priority, submitter_email=submitter_email)
     # Is there a race condition here?  In this kind of database
     # I would assume not.
-    time.wait(1)
-    t = ticketToTask(jutdaapi.get_detailed_ticket(ticket_id))
+    time.sleep(1)
+    ticket = jutdaapi.get_detailed_ticket(ticket_id)
+    t = ticketToTask(ticket)
+    #How is this necessary, or a good idea?
     updateTask(t)
     return t
 
 def formatTask(task):
     raise NotImplementedError('some sort of nice text display')
+
+if __name__ == '__main__':
+    import pudb; pudb.set_trace()
+    task = newTask('tomTestTask', "this is a task to test tom's jutda task api",
+            'Taskassigner')
+    from pprint import pprint
+    print('newtask:')
+    pprint(dir(task))
+    raw_input('hit return to delete the task')
+    deleteTask(task)

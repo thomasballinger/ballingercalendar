@@ -177,8 +177,6 @@ def newTask(name, description, assigner, priority=None, submitter_email=None, wh
     time.sleep(1)
     ticket = jutdaapi.get_detailed_ticket(ticket_id)
     t = ticketToTask(ticket)
-    #How is this necessary, or a good idea?
-    updateTask(t)
     return t
 
 def formatTask(task):
@@ -191,5 +189,8 @@ if __name__ == '__main__':
     from pprint import pprint
     print('newtask:')
     pprint(dir(task))
+    print updateTask(task)
+    t.title = 'newtitle'
+    print updateTask(task)
     raw_input('hit return to delete the task')
     deleteTask(task)

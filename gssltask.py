@@ -17,31 +17,23 @@ import sys
 import string
 import auth
 import webbrowser
+import abstracttask
 
 (email, password) = auth.get_authentication()
 spreadsheet = 'tasks'
 worksheet = 'Sheet1'
 googleCalendarZero = datetime.datetime(1899,12,30)
 
-class Task:
+class Task(abstracttask.Task):
     def __init__(self):
-        self.id = ''
-        self.whose = 'no one'
-        self.name = 'unnamed'
-        self.description = 'no description'
         self.duedate = datetime.datetime.now()
-        self.assigner = 'no one'
-        self.priority = 9
         self.estimatedtime = datetime.timedelta(0,60*60)
-        self.timespent = datetime.timedelta(0)
-        self.starttime = datetime.datetime.now()
         self.waitids = []
         self.isappointment = False
-        self.iscompleted = False
         self.row = None
 
     def __repr__(self):
-        return 'task: '+self.name+' '+str(self.duedate)
+        return 'gssltask: '+self.name+' '+str(self.duedate)
 
     def __cmp__(a,b):
         td = b.duedate - a.duedate
@@ -109,10 +101,10 @@ def getClient():
         captcha_response = raw_input("Type the captcha image here: ")
         gd_client.ProgrammaticLogin(captcha_token, captcha_response)
         print "Done!"
-    return gd_client 
+    return gd_client
 
 def createTasks():
-    '''Returns a list of task objects'''
+    """Returns a list of task objects"""
     gd_client = getClient()
     (spreadsheetID, worksheetID) = getTasksIDs(gd_client)
     cellsFeed = gd_client.GetCellsFeed(spreadsheetID, worksheetID)

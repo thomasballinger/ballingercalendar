@@ -8,6 +8,7 @@ class Task(abstracttask.Task): # should inherit from base abstract class, which 
     """Represents a task"""
     def __init__(self):
         """Creates a local new task"""
+        abstracttask.Task.__init__(self)
 #        self.id = '' # this is the id used in calendars, etc.
         self._ticket_id = ''# this is an implementation detail of jutda task tracker
 #        self.whose = 'no one' # who task is assigned to, in this implementation
@@ -40,7 +41,8 @@ def createTasks():
                                      # to 1000 in jutda user settings
     for ticket in tickets:
         task = Task()
-        task.
+        task._ticket_id = ticket.ticket_id
+        
     tasks = []
     return tasks
 

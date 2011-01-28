@@ -26,6 +26,7 @@ googleCalendarZero = datetime.datetime(1899,12,30)
 
 class Task(abstracttask.Task):
     def __init__(self):
+        abstracttask.Task.__init__(self)
         self.duedate = datetime.datetime.now()
         self.estimatedtime = datetime.timedelta(0,60*60)
         self.waitids = []

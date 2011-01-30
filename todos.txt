@@ -1,28 +1,40 @@
-Integration with PNL Task Tracker:
--create task (create ticket as well)
--when ticket reassigned, removed?  No.
-
-New Database:
-id
-whose
-name (matches task tracker)
-description (matches task tracker)
-duedate (remove this field)
-priority (now 1-5)
-estimatedtime = 
-
-Don't seek integration with old events!
-create good record of time up until this Friday, save it, then start using new system
-
 use cases:
+By Monday (to facilitate change-over):
 -record time spend on task
+-get time spent working for a week
+-get time spent working on this task
+-get pretty report working
 -create new task
--report time spend working
--report time spend working on what tickets
+-create new task with given calendar id
+  implemented by searching for a key in the description
+  that sets id - otherwise it's "t-<id#>"
+-limited CLI tool
+  get tasks
+    with parsing of options
+  select task
+    gets more information
+	removed task from tasks list so it can be updated by
+	 reassigning 'selected_task'
+	prints task
+  edit description, title, for, priority, submitter email
+    has_not_saved = True
+  decorator on other tasks that checks if want to abandon changes
+  save changes
+    if task has changed, error, changes reverted
+  web-edit task
+    wait for return key, then recreate task
+  Combination methods that make change and save
 
 
+Changeover will be manual, not automated.
+All old tasks will be closed, new tasks will be created
+use with same calendear id
 
-
+To Do:
+-test task creation with all options - use website to inspect
+-test that hours can be recored and reported for new tasks
+-test reports
+-create new interface which assumes tasks are new-type.
 
 Before attempting web interface:
 -calendarHours needs method to get hours for several ids at once

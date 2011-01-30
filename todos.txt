@@ -1,36 +1,51 @@
-Integration with PNL Task Tracker:
--create task (create ticket as well)
--when ticket reassigned, removed?  No.
-
-New Database:
-id
-whose
-name (matches task tracker)
-description (matches task tracker)
-duedate (remove this field)
-priority (now 1-5)
-estimatedtime = 
-
-Don't seek integration with old events!
-create good record of time up until this Friday, save it, then start using new system
-
 use cases:
--record time spend on task
--create new task
--report time spend working
--report time spend working on what tickets
+By Monday (to facilitate change-over):
+-jutdatask: use html to hide metadata in description
+  <useThisCalID= >, <taskIsFor= >
+  no longer gets id from ticket without description
+  no still write to task with for:, but don't read
+-calendar hours: get time spent working for a week
+  first use hours.getCalIds
+  then make tasks for these, get hours for each one.
+  OR getHoursForMultipleTasks method
+  this way calendarHours can be task-implementation neutral
+  (could accept task.id, or tasks that happen to have a .id)
+  in CLI logic, flag for if starttime before CHANGEOVERDATE,
+  then poll both databases for tasks.
+  OR (better) poll calendar for tasks, then create
+  just those tasks, based on CHANGEOVERID
+-limited CLI tool
+  create new task
+    all options should be available
+    same interface as editing tasks 
+    can't save until priority, title, assigner, and desc.
+  create new task with given calendar id
+    implemented by searching for a key in the description
+    that sets id - otherwise it's "t-<id#>"
+    but then only know calendar id if detailed view used
+    use html in description to hide this!
+  get tasks
+    with parsing of options
+  select task
+    gets more information
+	removed task from tasks list so it can be updated by
+	 reassigning 'selected_task'
+	prints task
+  web-edit task, web-view task
+    wait for return key, then recreate task if edited
+	(important for testing)
+  edit description, title, for, priority, submitter email
+    self.selected_has_not_saved = True
+  decorator on other tasks that checks if want to abandon changes
+    or maybe change the default method of cmd?
+  save changes 
+    if task has changed, error, changes reverted
+  Combination methods that make change and save
+-get time spent working on this task
+  should work same as before
+-get pretty report working
+  should work same as before
 
-
-
-
-
-Before attempting web interface:
--calendarHours needs method to get hours for several ids at once
--calendarHours should use this method for faster getWeekHours
--createTasks already works correctly for web interface
-
-
-Once trying to do web interface:
--authentication methods need to be different
--should more flexibly be able to switch out authentication;
-  getClient type methods?
+Changeover will be manual, not automated.
+All old tasks will be marked 'completed', new tasks
+ will be created with same calendear id

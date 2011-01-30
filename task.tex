@@ -1,0 +1,122 @@
+\title{``Task'' Personal Task Manager Plan}
+\author{
+        Thomas Ballinger \\
+                PNL\\
+}
+\date{\today}
+
+\documentclass[12pt]{article}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{graphicx}
+\DeclareGraphicsExtensions{.png}
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Because I work in a lab with many bosses and possess many skills unique among my peers to myself,
+I frequently find myself being pulled in too many directions.  In my free time, I'm going to
+design a scheduling system to keep track of the tasks I should be working on.  It should not
+be a prescriptive program that purports to be able to better schedule my day than I can, but
+all relevant scheduling information should be available to me quickly and tastefully.
+\end{abstract}
+
+\section{Use Cases}
+I want to have a list of tasks I need to do.  I want a variety of ways of interacting with this list,
+and want many of these interactions to be able to occur from anywhere via the internet, not just in 
+the lab.  The system should handle both todo type tasks and scheduled appointments.  Record keeping
+for use of work hours is essential, and should allow calendar-type or task-related hours reporting.
+I want enough information about each task that a schedule could be suggested for the day.
+
+\section{Implementation}
+All sorts of queries need to be possible of the list of tasks.  The number of tasks should be on the
+order of 1000 per year.
+
+\subsection{Task Class}
+These are the things I can think of right now that I'd want to be associated with each task.
+\begin{tabular}{c || c | c }
+    Property             & type        \\ \hline
+    Name (must be unique, a-z A-Z and space )                & string      \\ \hline
+    Whose (who has to do it)               & string      \\ \hline
+    Description (inc. links)         & string      \\ \hline
+    Due Date             & datetime    \\ \hline
+    Assigner             & string      \\ \hline
+    Priority             & int 0-9     \\ \hline
+    Estimated Time       & datetime    \\ \hline
+    Start Time           &
+    Created time (readonly)& datetime    \\ \hline
+    Times Spent          & list of datetime pairs   \\ \hline
+    Things Waiting On    & list of other tasks   \\ \hline
+    Appointment Flag     & boolean     \\ \hline
+    Completed Flag       & boolean     \\ \hline
+\end{tabular}
+
+\subsection{Google Calendar Gadget}
+Google Calendar Sidebar Gadgets have read and write access to the calendar.
+Google calender GUI is really great, but I don't know if I can sufficiently change
+the interface to allow things like autocomplete names of calendar events.
+
+I could use buttons in the gadget for each task, which would create an event I could
+drag around to show when I worked on that task.  Creating a new task would bring up
+a dialog, and I could have options to count things and such - but then I have to write
+it in javascript and xml, which doesn't sound as fun as python.  Something else might
+have to handle the totalling up of time and such.
+
+\subsection{Google App Engine Website}
+To begin with, the presentation code will be developed for creating reports
+
+\begin{verbatim}
+\about work on this later
+\new  checklist of how to get set up
+\thomasballinger\prefs
+    other users allowed access besides me
+\thomasballinger\tasks\id\<taskid>
+    pretty representation of that task, showing all info
+\thomasballinger\tasks\name\<taskname>
+    redirect to id url
+\thomasballinger\report\<startdatestring>\<enddatestring>
+    breakdown by assigner, hours, with links
+    plaus expandable descriptions w/javascript
+
+\end{verbatim}
+
+\subsection{Local App}
+Serving a local database would be the easiest thing to transition to, since I have this working
+already on the work network.  Command-line interface I already have implemented for this
+works fairly well.
+
+\section{Interaction}
+View urgency vs importance graph, with sideboard for waitings on?
+Create a schedule for the day which is editable by me.
+Simply and easily create and edit tasks.
+Even more simply and easily mark tasks as complete, adding waitings on. 
+Produce comp hour reports, and predictions of how busy I am with 
+important and med-importance things to show paula.
+
+\subsection{Weekly Hour Report}
+
+\subsection{Projects Report}
+
+\subsection{Graphical Interaction}
+How to best record that I just worked on something?  
+Could read google calendar and record that by associating it with a task.
+Maybe one calendar per task for easy selection?  Maybe excellend type distance
+sort of thing to match calendar event with a task?
+Could show these past tasks worked on on a google calendar (easy)
+Similarly, simple interaction to create future events.
+
+I like the idea of monitoring the excellent google calendar interface.  But these tasks
+would have to match the original names of the task somehow.
+
+\section{Integration}
+Google Calendar should be updated with past events to reflect what work I was doing.
+Google Calendar should be queried to check for new appointments.
+Some kind of Google App Engine application should allow the cool tasks interaction
+that I'm going to do on the SPL network at first.
+Other people should be able to view my working stack, so they know what's on the docket
+before their task.
+If not Google Calendar, some graphical calendar app to allow adding future appointments
+and tasks.
+
+\end{document}
+%\includegraphics[width=100mm]{SNRs}
+%\includegraphics[width=100mm]{stdev}

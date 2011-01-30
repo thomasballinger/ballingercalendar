@@ -1,0 +1,61 @@
+#!/usr/bin/python
+# update time spent for all tasks
+# thomasballinger@gmail.com
+
+import os, sys, optparse
+import datetime
+
+import calendarHours as hours
+import gssltask as task
+from pprint import pprint
+
+def updateHours():
+    task_list = task.createTasks()
+    for t in task_list:
+        print 'updating',t.name,t.timespent,
+        t.timespent = hours.getHoursWorked(t.id)
+        print 'to',t.timespent
+        t.put()
+
+def datetimeToHoursString(dt):
+    s = dt.days * 24 * 3600 + dt.seconds
+    h = float(s) / 3600
+    return '%.1f' % h + ' hours'
+
+dToh = datetimeToHoursString
+
+def showWeek(ds1, ds2, updateAllHours=True):
+    if updateAllHours:
+        updateHours()
+    task_list = task.createTasks()
+    totalHours = datetime.timedelta(0)
+    i=1
+    for t in task_list:
+        i+=1
+        t.weekHours = hours.getWeekHours(t.id, ds1, ds2)
+        totalHours += t.weekHours
+    weekList = [x for x in task_list if x.weekHours > datetime.timedelta(0)]
+    assigners = {}
+    for t in weekList:
+        if not t.assigner in assigners:
+            assigners[t.assigner] = t.weekHours
+        else:
+            assigners[t.assigner] += t.weekHours
+   
+    assigners = zip(assigners.keys(), assigners.values())
+    assigners.sort(key=lambda x: -x[1])
+    weekList.sort(key=lambda t: t.assigner)
+    
+    print dToh(totalHours), 'worked'
+    print 'tasks for', ds1, 'to', ds2
+    for (assigner, assignerHours) in assigners:
+        print '  ', dToh(assignerHours), assigner
+        assignerTasks = [t for t in weekList if t.assigner == assigner] 
+        assignerTasks.sort(key=lambda t: -t.weekHours)
+        for t in assignerTasks:
+            print '    ', dToh(t.weekHours), t.name
+    
+if __name__ == '__main__':
+#    showWeek('2010-07-05','2010-07-19',updateAllHours=False)
+#    print dToh(datetime.timedelta(1,1800))
+    showPrettyWeek('2010-07-05', '2010-07-19')    

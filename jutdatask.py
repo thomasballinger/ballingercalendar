@@ -72,7 +72,7 @@ class Task(abstracttask.Task): # should inherit from base abstract class, which 
 
         webbrowser.open_new_tab()
         raw_input('Hit Enter when done editing task in webbrowser')
-        self.refresh_local()
+        updateTask(self)
 
 def createTasks():
     """Returns a (hopefully full) list of task objects"""
@@ -82,6 +82,9 @@ def createTasks():
     for ticket in tickets:
         tasks.append(createTask(ticket))
     return tasks
+
+def detailedVersion(task):
+    return createDetailedTask(task.ticket_id)
 
 def createDetailedTask(ticket_id):
     """Returns"""
@@ -132,7 +135,8 @@ def ticketToTask(ticket):
     return task
 
 def updateTask(task):
-    """Updates the database task with local information, perhaps creating a new one"""
+    """Updates the database task with local information, perhaps creating a new one.
+    Returns true if the database succesfully reflects the local one."""
     # First check to see if task exists
     detailed_ticket = jutdaapi.get_detailed_ticket(task._ticket_id)
     if not detailed_ticket:
@@ -142,18 +146,18 @@ def updateTask(task):
     database_task = ticketToTask(jutdaapi.get_detailed_ticket(task._ticket_id))
     if task._orig == task:
         return 'no changes to make'
-        return False
+        return True
     # If so, check that no one else has made changes (diff orig and database)
     if not database_task == task._orig:
-        print 'task has changed in database'
+        print 'task has changed in database; refresh task!'
         return False
     priority = (task.priority + 2) / 2
     if task.assigner != 'no one':
-        title = task.title + 'for: '+task.assigner
+        title = task.name + 'for: '+task.assigner
     else:
-        title = task.title
+        title = task.name
     description = task.description
-    return judtaapi.edit_ticket(ticket_id, title=title, queue=None, submitter_email=None,
+    return jutdaapi.edit_ticket(task._ticket_id, title=title, queue=None, submitter_email=None,
             description=description, priority=priority)
 
 def deleteTask(task):
@@ -183,14 +187,14 @@ def formatTask(task):
     raise NotImplementedError('some sort of nice text display')
 
 if __name__ == '__main__':
-    import pudb; pudb.set_trace()
-    task = newTask('tomTestTask', "this is a task to test tom's jutda task api",
+    task = newTask('tomTestTask', "this is a task to test tom's jutda task api\n linebreaks included.",
             'Taskassigner')
     from pprint import pprint
     print('newtask:')
     pprint(dir(task))
     print updateTask(task)
-    t.title = 'newtitle'
+    task.name = 'newnameof this task'
     print updateTask(task)
+    import pudb; pudb.set_trace()
     raw_input('hit return to delete the task')
     deleteTask(task)

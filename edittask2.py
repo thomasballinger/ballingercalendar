@@ -1,0 +1,331 @@
+#!/usr/bin/python
+# edittask
+# being updated for use with spreadsheet-based tasks
+# thomasballinger@gmail.com
+import time
+import os, sys, optparse
+import datetime, parse
+import gssltask
+import jutdatask
+import calendarhours as hours
+import cmd
+import pretty
+from pprint import pprint
+
+class EditTasksCLI(cmd.Cmd):
+    def __init__(self):
+        cmd.Cmd.__init__(self)
+        self.prompt = ':) '
+        self.selected_task = None
+        self.task_list = jutdatask.
+
+    def do_updateLocalTasklist(self, arg):
+        self.task_list = gssltask.createTasks() + jutdatask.
+
+    def do_exit(self, arg):
+        sys.exit(0)
+
+    def do_quit(self, arg):
+        sys.exit(0)
+
+    def do_EOF(self, arg):
+        print('')
+        return True
+
+    def do_prettyHours(self, arg):
+        if not arg:
+            return False
+        splitargs = arg.split()
+        (ds1, ds2) = splitargs[:2]
+        if len(splitargs) == 3:
+            filename = splitargs[2]
+            return pretty.showWeekly(ds1, ds2, filename=filename)
+        return pretty.showWeekly(ds1, ds2)
+
+    def do_listtasks(self, arg):
+        print self.task_list
+
+    def do_task(self, arg):
+        if arg:
+            arg = arg.replace('_',' ')
+            l = [x for x in self.task_list if x.name == arg]
+            if not l:
+                print('no such task')
+                return
+            self.selected_task = l[0]
+            print(self.selected_task)
+        elif self.selected_task:
+            print(self.selected_task)
+        else:
+            print('select a task, or create a new one')
+
+    def complete_task(self, text, line, beginindex, endindex):
+        if not text:
+            a = [x.name.replace(' ','_') for x in self.task_list]
+            return a
+        else:
+            a = [x.name.replace(' ','_') for x in [t for t in self.task_list if text.lower() in t.name.replace(' ','_').lower()]]
+            return a
+
+    def do_rename(self,arg):
+        if not self.selected_task: print('choose a task first'); return
+        self.selected_task.name = arg.replace('_',' ')
+        self.selected_task.put()
+        self.task_list = task.createTasks()
+
+    def do_newtask(self,arg):
+        if not arg:
+            arg = raw_input('task name:')
+            if not arg:
+                print('nm')
+                return False
+        t = task.newTask(arg.replace('_',' '))
+        self.selected_task = t
+        time.sleep(1)
+
+    def do_description(self, arg):
+        if not self.selected_task: print('choose a task first'); return
+        if not arg:
+            print('description:'+self.selected_task.description)
+            return
+        self.selected_task.description = arg
+        self.selected_task.put()
+        self.task_list = task.createTasks()
+
+    def do_timeLeft(self, arg):
+        """Displays time left before a task is due, """
+        if not self.selected_task: print('choose a task first'); return
+        self.selected_task.timespent = hours.get_hours_worked(self.selected_task.id)
+        overdue = self.selected_task.duedate - datetime.datetime.now()
+        left = self.selected_task.estimatedtime - self.selected_task.timespent
+        if self.selected_task.iscompleted:
+            print 'task completed.'
+            print 'estimated time for task:      ', self.selected_task.estimatedtime
+            print 'time spent on task:           ', self.selected_task.timespent
+        else:
+            if overdue < datetime.timedelta(0):
+                print 'task overdue by:          ', abs(overdue)
+            else:
+                print 'time until task due:      ', overdue
+            if left < datetime.timedelta(0):
+                print 'task is overbudget by:    ', abs(left)
+            else:
+                print 'estimated time to complete', left
+            print     'estimated time for task:  ', self.selected_task.estimatedtime
+            print     'time spent so far:        ', self.selected_task.timespent
+
+    def do_due(self, arg):
+        if not self.selected_task: print('choose a task first'); return
+        if not arg:
+            print 'due date:',self.selected_task.duedate
+            return
+        time = parse.parseDate(arg)
+        self.selected_task.duedate = time
+        print 'due date:',time
+        self.selected_task.put()
+        self.task_list = task.createTasks()
+
+    def do_assigner(self, arg):
+        if not self.selected_task: print('choose a task first'); return
+        if not arg:
+            print 'assigner:',self.selected_task.assigner
+            return
+        self.selected_task.assigner = arg
+        self.selected_task.put()
+        self.task_list = task.createTasks()
+
+    def do_whose(self, arg):
+        if not self.selected_task: print('choose a task first'); return
+        if not arg:
+            print 'whose:',self.selected_task.whose
+            return
+        self.selected_task.whose = arg
+        self.selected_task.put()
+        self.task_list = task.createTasks()
+
+    def do_priority(self, arg):
+        if not self.selected_task: print('choose a task first'); return
+        if not arg:
+            print 'priority:',self.selected_task.priority
+            return
+        if not -1<int(arg)<10:
+            print('bad priority value')
+            return
+        self.selected_task.priority = int(arg)
+        self.selected_task.put()
+        self.task_list = task.createTasks()
+
+    def do_estimatedTime (self, arg):
+        if not self.selected_task: print('choose a task first'); return
+        if not arg:
+            print 'estimated time:',self.selected_task.estimatedtime
+            return
+        timedelta = parse.parseTimedelta(arg)
+        self.selected_task.estimatedtime = timedelta
+        self.selected_task.put()
+        self.task_list = task.createTasks()
+        print 'estimated time:',self.selected_task.estimatedtime
+
+    def do_timespent(self, arg):
+        if not self.selected_task: print('choose a task first'); return
+        if not arg:
+            print 'time spend:',self.selected_task.timespent
+            return
+        interval = parse.parseTimeInterval(arg)
+        self.selected_task.timeSpend.append()
+        self.selected_task.put()
+        self.task_list = task.createTasks()
+        print 'time spend:',self.selected_task.timespent
+
+    def do_wait(self, arg):
+        if not self.selected_task: print('choose a task first'); return
+        if not arg:
+            print 'waits:',self.selected_task.waits
+            return
+        self.selected_task.waits.append(task.Wait())
+        self.selected_task.waits[-1].whatFor = arg
+        selected_task.put()
+        print 'waits:',self.selected_task.waits
+
+    def do_appointment(self, arg):
+        if not self.selected_task: print('choose a task first'); return
+        self.selected_task.isappointment = True
+        self.selected_task.put()
+        self.task_list = task.createTasks()
+        print 'task is now an appointment'
+
+    def do_notAppointment(self, arg):
+        if not self.selected_task: print('choose a task first'); return
+        self.selected_task.isappointment = False
+        self.selected_task.put()
+        self.task_list = task.createTasks()
+        print 'task is now not an appointment'
+
+    def do_notComplete(self, arg):
+        if not self.selected_task: print('choose a task first'); return
+        self.selected_task.iscompleted= False
+        self.selected_task.put()
+        self.task_list = task.createTasks()
+
+    def do_complete(self, arg):
+        if not self.selected_task: print('choose a task first'); return
+        self.selected_task.iscompleted= True
+        self.selected_task.put()
+        self.task_list = task.createTasks()
+
+    def do_showCurrentTask(self, arg):
+        if not self.selected_task: print 'select a task first'; return
+        t = self.selected_task
+        print(t.name)
+        for (label,prop) in zip(
+        ['desc:','due:','assigned by:','priority:','time estimate:','time spent','start time','waits','is appointment:','is complete:'],
+        [t.description, t.duedate, t.assigner, t.priority, t.estimatedtime, t.timespent, t.starttime, t.waitids, t.isappointment, t.iscompleted]):
+            if prop:
+                print label,prop
+
+    def do_removeTask(self, arg):
+        if not self.selected_task: print 'select a task first'; return
+        check = parse.parseBoolean(raw_input('really delete task'+self.selected_task.__repr__()+'?\n'))
+        if check:
+            task.deleteTask(self.selected_task)
+            self.selected_task = None
+
+    def do_listChronologicallyByDueDate(self, arg):
+        pprint(task.getTheStack(self.task_list))
+
+    def do_listOverdue(self, arg):
+        pprint([t for t in self.task_list if t.duedate < datetime.datetime.now() and not t.iscompleted])
+
+    def do_listCompleted(self, arg):
+        pprint([t for t in self.task_list if t.iscompleted])
+
+    def do_listInProgress(self, arg):
+        task_list = [t for t in self.task_list if not t.iscompleted]
+        task_list.sort(key=lambda t: datetime.timedelta(t.priority*365*10) + (t.duedate - datetime.datetime.now()))
+        task_list.reverse()
+        maxTaskLength = max(len(t.name) for t in task_list)
+        print ('task name'+' '*maxTaskLength)[:maxTaskLength]+ ' p' + '   ' + 'time left' + '   ' + 'time till due'
+        for t in task_list:
+            timeToGo = self.timedeltaToHoursString(t.estimatedtime - t.timespent)
+            timeTillDue = self.timedeltaToDaysString(t.duedate - datetime.datetime.now())
+            print (t.name + ' '*maxTaskLength)[:maxTaskLength]+' '+str(t.priority)+'   '+(timeToGo+' '*10)[:10]+timeTillDue
+
+    def do_listProjects(self, arg):
+        task_list = [t for t in self.task_list if not t.iscompleted]
+        #task_list.sort(key=lambda t: datetime.timedelta(t.priority*365*10) + (t.duedate - datetime.datetime.now()))
+        task_list.sort(key=lambda t: t.assigner)
+        maxTaskLength = max(len(t.name) for t in task_list)
+        for t in task_list:
+            timeToGo = self.timedeltaToHoursString(t.estimatedtime - t.timespent)
+            timeTillDue = self.timedeltaToDaysString(t.duedate - datetime.datetime.now())
+            print timeToGo+'\t'+str(t.priority)+'\t'+(t.name + ' '*maxTaskLength)[:maxTaskLength]+'\t'+t.assigner
+            print '\t'+t.description+'\n'
+
+    def timedeltaToDaysString(self, td):
+        if abs(td) < datetime.timedelta(1):
+            output = str(abs(td).seconds / 3600)+':'+('00'+str(abs(td).seconds / 60))[-2:]
+        else:
+            output = str(abs(td).days)+' days'
+#            output = str(abs(td).days)+' days, '+('00'+str(abs(td).seconds / 3600))[-2:]+':'+('00'+str(abs(td).seconds / 60))[-2:]
+        if td < datetime.timedelta(0):
+            # overdue timedelta
+            return 'overdue by '+output
+        else:
+            return output
+
+    def timedeltaToHoursString(self, td):
+        s = td.seconds +  24 * 60 * 60 * td.days
+        h = s / 60 / 60
+        m = int(s / 60 % 60)
+        return str(h)+':'+('00'+str(m))[-2:]
+
+    def do_graphTasks(self, arg):
+        pass
+
+    def do_workedOn(self, arg):
+        "doesn't do anything yet"
+        return parse.parseTimeInterval(arg)
+
+    def do_debug(self, arg):
+        "enters debug mode"
+        import pudb; pudb.set_trace()
+
+    def do_updateTimeSpent(self, arg):
+        if not self.selected_task:
+            print 'select a task first'
+            return
+        self.selected_task.timespent = hours.get_hours_worked(self.selected_task.id)
+        print self.selected_task.timespent
+        self.selected_task.put()
+        self.task_list = task.createTasks()
+
+    def do_clockHours(self, arg):
+        if not self.selected_task:
+            print 'select a task first'
+            return
+        if arg and len(arg.split()) % 2 == 0:
+            hours.clock_time(
+                    self.selected_task.id,
+                    title=self.selected_task.name,
+                    description=self.selected_task.description,
+                    start_datetime=parse.parseTimeInterval(' '.join(arg.split()[:len(arg.split()/2)])), 
+                    end_datetime=parse.parseTimeInterval(' '.join(arg.split()[arg.split()/2:]))
+            )
+        else:
+            hours.clock_time(
+                    self.selected_task.id,
+                    title=self.selected_task.name,
+                    description=self.selected_task.description)
+
+        print 'hours clocked'
+
+    def do_clear(self, arg):
+        for i in range(100):
+            print ''
+
+    def do_hours(self, arg):
+        pprint([(t.name, t.timespent) for t in self.task_list])
+
+if __name__ == '__main__':
+    cli = EditTasksCLI()
+    cli.cmdloop()

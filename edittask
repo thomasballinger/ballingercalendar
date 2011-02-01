@@ -260,7 +260,7 @@ class EditTasksCLI(cmd.Cmd):
         for t in task_list:
             timeToGo = self.timedeltaToHoursString(t.estimatedtime - t.timespent)
             timeTillDue = self.timedeltaToDaysString(t.duedate - datetime.datetime.now())
-            print timeToGo+'\t'+str(t.priority)+'\t'+(t.name + ' '*maxTaskLength)[:maxTaskLength]+'\t'+t.assigner
+            print timeToGo+'\t'+str(t.id)+'\t'+str(t.priority)+'\t'+(t.name + ' '*maxTaskLength)[:maxTaskLength]+'\t'+t.assigner
             print '\t'+t.description+'\n'
 
     def timedeltaToDaysString(self, td):

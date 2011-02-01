@@ -2,12 +2,11 @@ use cases:
 By Monday (to facilitate change-over):
 -jutdatask: use html to hide metadata in description
   <useThisCalID= >, <taskIsFor= >
-  no longer gets id from ticket without description
-  no still write to task with for:, but don't read
+  *NO HTML - can't do this now.  Still using cal id though
 -calendar hours: get time spent working for a week
-  first use hours.getCalIds
-  then make tasks for these, get hours for each one.
-  OR getHoursForMultipleTasks method
+  _ first use hours.getCalIds for time period
+  _ then make tasks for these, get hours for each one.
+  _ OR getHoursForMultipleTasks method
   this way calendarHours can be task-implementation neutral
   (could accept task.id, or tasks that happen to have a .id)
   in CLI logic, flag for if starttime before CHANGEOVERDATE,

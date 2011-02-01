@@ -7,6 +7,7 @@ import os, sys, optparse
 import datetime, parse
 import gssltask
 import jutdatask
+import jutdatask as task
 import calendarhours as hours
 import cmd
 import pretty
@@ -17,10 +18,35 @@ class EditTasksCLI(cmd.Cmd):
         cmd.Cmd.__init__(self)
         self.prompt = ':) '
         self.selected_task = None
-        self.task_list = jutdatask.
+        self.updateLocalTasklist()
 
     def do_updateLocalTasklist(self, arg):
-        self.task_list = gssltask.createTasks() + jutdatask.
+        self.updateLocalTasklist()
+
+    def updateLocalTasklist(self, select_task=None):
+        if self.selected_task and not select_task:
+            id = self.selected_task.id[:]
+        elif select_task:
+            id = select_task.id[:]
+        else:
+            id = None
+        self.selected_task = None
+        self.task_list = jutdatask.createTasks()
+        if id:
+            desired_task = [x for x in self.task_list if x.id == id]
+        if id and len(desired_task) == 1:
+            self.selected_task = desired_task[0]
+            self.task_list.remove(self.selected_task)
+            self.selected_task = jutdatask.createDetailedTask(self.selected_task._ticket_id)
+        else:
+            self.selected_task = None
+
+    def do_webEdit(self, arg):
+        if not self.selected_task: print('choose a task first'); return
+        self.selected_task.webedit()
+        raw_input('Hit Enter when done editing task in webbrowser')
+        self.updateLocalTasklist()
+
 
     def do_exit(self, arg):
         sys.exit(0)
@@ -33,6 +59,8 @@ class EditTasksCLI(cmd.Cmd):
         return True
 
     def do_prettyHours(self, arg):
+        raise Exception("pretty needs to be more modular to allow jutdatasks")
+        raise Exception("pretty needs to allow hardcoded meetings (move meeting constants to hours)")
         if not arg:
             return False
         splitargs = arg.split()
@@ -42,17 +70,18 @@ class EditTasksCLI(cmd.Cmd):
             return pretty.showWeekly(ds1, ds2, filename=filename)
         return pretty.showWeekly(ds1, ds2)
 
-    def do_listtasks(self, arg):
-        print self.task_list
-
     def do_task(self, arg):
         if arg:
             arg = arg.replace('_',' ')
             l = [x for x in self.task_list if x.name == arg]
             if not l:
-                print('no such task')
-                return
+                l = [x for x in self.task_list if x.name.strip() == arg.strip()]
+                if not l:
+                    print('no such task')
+                    return
             self.selected_task = l[0]
+            self.task_list.remove(self.selected_task)
+            self.selected_task = jutdatask.createDetailedTask(self.selected_task._ticket_id)
             print(self.selected_task)
         elif self.selected_task:
             print(self.selected_task)
@@ -71,17 +100,47 @@ class EditTasksCLI(cmd.Cmd):
         if not self.selected_task: print('choose a task first'); return
         self.selected_task.name = arg.replace('_',' ')
         self.selected_task.put()
-        self.task_list = task.createTasks()
+        self.updateLocalTasklist()
 
     def do_newtask(self,arg):
-        if not arg:
-            arg = raw_input('task name:')
-            if not arg:
-                print('nm')
-                return False
-        t = task.newTask(arg.replace('_',' '))
-        self.selected_task = t
-        time.sleep(1)
+        name = raw_input('task name:')
+        description = raw_input('task description:')
+        assigner = raw_input('task assigner:')
+        priority = raw_input('priority:')
+        submitter_email = raw_input('submitter email:')
+        whose = raw_input('whose')
+        customID = None
+        if not priority:
+            priority = None
+        if not submitter_email:
+            submitter_email = None
+        if not whose:
+            whose = None
+        if not all([name, description, assigner]):
+            print('nm')
+            return False
+        t = task.newTask(name, description, assigner, customID, priority, submitter_email, whose)
+        self.updateLocalTasklist(t)
+
+    def do_customIdNewtask(self,arg):
+        customID = raw_input('custom_id')
+        name = raw_input('task name:')
+        description = raw_input('task description:')
+        assigner = raw_input('task assigner:')
+        priority = raw_input('priority:')
+        submitter_email = raw_input('submitter email:')
+        whose = raw_input('whose')
+        if not priority:
+            priority = None
+        if not submitter_email:
+            submitter_email = None
+        if not whose:
+            whose = None
+        if not all([name, description, assigner]):
+            print('nm')
+            return False
+        t = task.newTask(name, description, assigner, customID, priority, submitter_email, whose)
+        self.updateLocalTasklist(t)
 
     def do_description(self, arg):
         if not self.selected_task: print('choose a task first'); return
@@ -90,40 +149,7 @@ class EditTasksCLI(cmd.Cmd):
             return
         self.selected_task.description = arg
         self.selected_task.put()
-        self.task_list = task.createTasks()
-
-    def do_timeLeft(self, arg):
-        """Displays time left before a task is due, """
-        if not self.selected_task: print('choose a task first'); return
-        self.selected_task.timespent = hours.get_hours_worked(self.selected_task.id)
-        overdue = self.selected_task.duedate - datetime.datetime.now()
-        left = self.selected_task.estimatedtime - self.selected_task.timespent
-        if self.selected_task.iscompleted:
-            print 'task completed.'
-            print 'estimated time for task:      ', self.selected_task.estimatedtime
-            print 'time spent on task:           ', self.selected_task.timespent
-        else:
-            if overdue < datetime.timedelta(0):
-                print 'task overdue by:          ', abs(overdue)
-            else:
-                print 'time until task due:      ', overdue
-            if left < datetime.timedelta(0):
-                print 'task is overbudget by:    ', abs(left)
-            else:
-                print 'estimated time to complete', left
-            print     'estimated time for task:  ', self.selected_task.estimatedtime
-            print     'time spent so far:        ', self.selected_task.timespent
-
-    def do_due(self, arg):
-        if not self.selected_task: print('choose a task first'); return
-        if not arg:
-            print 'due date:',self.selected_task.duedate
-            return
-        time = parse.parseDate(arg)
-        self.selected_task.duedate = time
-        print 'due date:',time
-        self.selected_task.put()
-        self.task_list = task.createTasks()
+        self.updateLocalTasklist()
 
     def do_assigner(self, arg):
         if not self.selected_task: print('choose a task first'); return
@@ -132,7 +158,7 @@ class EditTasksCLI(cmd.Cmd):
             return
         self.selected_task.assigner = arg
         self.selected_task.put()
-        self.task_list = task.createTasks()
+        self.updateLocalTasklist()
 
     def do_whose(self, arg):
         if not self.selected_task: print('choose a task first'); return
@@ -141,7 +167,7 @@ class EditTasksCLI(cmd.Cmd):
             return
         self.selected_task.whose = arg
         self.selected_task.put()
-        self.task_list = task.createTasks()
+        self.updateLocalTasklist()
 
     def do_priority(self, arg):
         if not self.selected_task: print('choose a task first'); return
@@ -153,73 +179,27 @@ class EditTasksCLI(cmd.Cmd):
             return
         self.selected_task.priority = int(arg)
         self.selected_task.put()
-        self.task_list = task.createTasks()
-
-    def do_estimatedTime (self, arg):
-        if not self.selected_task: print('choose a task first'); return
-        if not arg:
-            print 'estimated time:',self.selected_task.estimatedtime
-            return
-        timedelta = parse.parseTimedelta(arg)
-        self.selected_task.estimatedtime = timedelta
-        self.selected_task.put()
-        self.task_list = task.createTasks()
-        print 'estimated time:',self.selected_task.estimatedtime
-
-    def do_timespent(self, arg):
-        if not self.selected_task: print('choose a task first'); return
-        if not arg:
-            print 'time spend:',self.selected_task.timespent
-            return
-        interval = parse.parseTimeInterval(arg)
-        self.selected_task.timeSpend.append()
-        self.selected_task.put()
-        self.task_list = task.createTasks()
-        print 'time spend:',self.selected_task.timespent
-
-    def do_wait(self, arg):
-        if not self.selected_task: print('choose a task first'); return
-        if not arg:
-            print 'waits:',self.selected_task.waits
-            return
-        self.selected_task.waits.append(task.Wait())
-        self.selected_task.waits[-1].whatFor = arg
-        selected_task.put()
-        print 'waits:',self.selected_task.waits
-
-    def do_appointment(self, arg):
-        if not self.selected_task: print('choose a task first'); return
-        self.selected_task.isappointment = True
-        self.selected_task.put()
-        self.task_list = task.createTasks()
-        print 'task is now an appointment'
-
-    def do_notAppointment(self, arg):
-        if not self.selected_task: print('choose a task first'); return
-        self.selected_task.isappointment = False
-        self.selected_task.put()
-        self.task_list = task.createTasks()
-        print 'task is now not an appointment'
+        self.updateLocalTasklist()
 
     def do_notComplete(self, arg):
         if not self.selected_task: print('choose a task first'); return
         self.selected_task.iscompleted= False
         self.selected_task.put()
-        self.task_list = task.createTasks()
+        self.updateLocalTasklist()
 
     def do_complete(self, arg):
         if not self.selected_task: print('choose a task first'); return
         self.selected_task.iscompleted= True
         self.selected_task.put()
-        self.task_list = task.createTasks()
+        self.updateLocalTasklist()
 
     def do_showCurrentTask(self, arg):
         if not self.selected_task: print 'select a task first'; return
         t = self.selected_task
         print(t.name)
         for (label,prop) in zip(
-        ['desc:','due:','assigned by:','priority:','time estimate:','time spent','start time','waits','is appointment:','is complete:'],
-        [t.description, t.duedate, t.assigner, t.priority, t.estimatedtime, t.timespent, t.starttime, t.waitids, t.isappointment, t.iscompleted]):
+        ['desc:','assigned by:','priority:','time spent','start time','is complete:'],
+        [t.description, t.assigner, t.priority, t.timespent, t.starttime, t.iscompleted]):
             if prop:
                 print label,prop
 
@@ -229,37 +209,60 @@ class EditTasksCLI(cmd.Cmd):
         if check:
             task.deleteTask(self.selected_task)
             self.selected_task = None
-
-    def do_listChronologicallyByDueDate(self, arg):
-        pprint(task.getTheStack(self.task_list))
-
-    def do_listOverdue(self, arg):
-        pprint([t for t in self.task_list if t.duedate < datetime.datetime.now() and not t.iscompleted])
+            print 'task deleted'
+        else:
+            print 'not deleted'
 
     def do_listCompleted(self, arg):
         pprint([t for t in self.task_list if t.iscompleted])
 
-    def do_listInProgress(self, arg):
+    def do_listIncomplete(self, arg):
         task_list = [t for t in self.task_list if not t.iscompleted]
-        task_list.sort(key=lambda t: datetime.timedelta(t.priority*365*10) + (t.duedate - datetime.datetime.now()))
-        task_list.reverse()
+        if not task_list:
+            print None
+            return
+        task_list.sort(key=lambda t: t.priority)
         maxTaskLength = max(len(t.name) for t in task_list)
-        print ('task name'+' '*maxTaskLength)[:maxTaskLength]+ ' p' + '   ' + 'time left' + '   ' + 'time till due'
         for t in task_list:
-            timeToGo = self.timedeltaToHoursString(t.estimatedtime - t.timespent)
-            timeTillDue = self.timedeltaToDaysString(t.duedate - datetime.datetime.now())
-            print (t.name + ' '*maxTaskLength)[:maxTaskLength]+' '+str(t.priority)+'   '+(timeToGo+' '*10)[:10]+timeTillDue
+            if t.iscompleted:
+                status = 'Complete'
+            else:
+                status = 'Open    '
+            print str(t.priority)+'\t'+status+'\t'+(t.name + ' '*maxTaskLength)[:maxTaskLength]+'\t'+t.assigner+'\t'+str(t.whose)
+            #print '\t'+str(t.description)+'\n'
 
-    def do_listProjects(self, arg):
-        task_list = [t for t in self.task_list if not t.iscompleted]
-        #task_list.sort(key=lambda t: datetime.timedelta(t.priority*365*10) + (t.duedate - datetime.datetime.now()))
-        task_list.sort(key=lambda t: t.assigner)
+    def do_listOpen(self, arg):
+        task_list = [t for t in self.task_list if t.whose == 'no one' and not t.iscompleted]
+        if not task_list:
+            print None
+            return
+        task_list.sort(key=lambda t: t.priority)
         maxTaskLength = max(len(t.name) for t in task_list)
         for t in task_list:
-            timeToGo = self.timedeltaToHoursString(t.estimatedtime - t.timespent)
-            timeTillDue = self.timedeltaToDaysString(t.duedate - datetime.datetime.now())
-            print timeToGo+'\t'+str(t.priority)+'\t'+(t.name + ' '*maxTaskLength)[:maxTaskLength]+'\t'+t.assigner
-            print '\t'+t.description+'\n'
+            if t.iscompleted:
+                status = 'Complete'
+            else:
+                status = 'Open    '
+            print str(t.priority)+'\t'+status+'\t'+(t.name + ' '*maxTaskLength)[:maxTaskLength]+'\t'+t.assigner
+            print '\t'+str(t.description)+'\n'
+
+    def do_listMyProjects(self, arg):
+        if arg:
+            task_list = [t for t in self.task_list if not t.iscompleted and t.whose.lower()==arg.lower()]
+        else:
+            task_list = [t for t in self.task_list if not t.iscompleted and t.whose.lower()=='thomas ballinger']
+        if not task_list:
+            print None
+            return
+        task_list.sort(key=lambda t: t.priority)
+        maxTaskLength = max(len(t.name) for t in task_list)
+        for t in task_list:
+            if t.iscompleted:
+                status = 'Complete'
+            else:
+                status = 'Open    '
+            print str(t.priority)+'\t'+status+'\t'+(t.name + ' '*maxTaskLength)[:maxTaskLength]+'\t'+t.assigner
+           # print '\t'+str(t.description)+'\n'
 
     def timedeltaToDaysString(self, td):
         if abs(td) < datetime.timedelta(1):
@@ -279,9 +282,6 @@ class EditTasksCLI(cmd.Cmd):
         m = int(s / 60 % 60)
         return str(h)+':'+('00'+str(m))[-2:]
 
-    def do_graphTasks(self, arg):
-        pass
-
     def do_workedOn(self, arg):
         "doesn't do anything yet"
         return parse.parseTimeInterval(arg)
@@ -298,6 +298,11 @@ class EditTasksCLI(cmd.Cmd):
         print self.selected_task.timespent
         self.selected_task.put()
         self.task_list = task.createTasks()
+
+    def do_meeting(self, arg):
+        title = raw_input("Meeting Name: ")
+        description = raw_input("Description: ")
+        hours.clock_time('meeting', title=title, description=description)
 
     def do_clockHours(self, arg):
         if not self.selected_task:

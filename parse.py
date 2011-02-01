@@ -92,5 +92,7 @@ def parseTimeInterval(datestring):
 def parseBoolean(b):
     if b == 'yes' or b == 'Yes' or b == 'y' or b == 'Y':
         return True
+    elif 'yes' in b.lower() or 'yeah' in b.lower() or 'yep' in b.lower() or 'uh-huh' in b.lower():
+        return True
     else:
         return False

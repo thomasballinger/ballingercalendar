@@ -184,8 +184,8 @@ class JutdaTicket():
             self.owner = owner
             self.queue = queue
             self.status = status.lower()
-            if not status in JutdaSession.status_dict:
-                raise('Bad status scraped: '+status+' not in '+str(JutdaSession.status_dict))
+            if not self.status in JutdaSession.status_dict:
+                raise Exception('Bad status scraped: '+self.status+' not in '+str(JutdaSession.status_dict))
             self.creation_date = dateutilparser.parse(re.findall(r"<span title='(.*)'>.*</span>", created)[0])
             self.priority = int(re.findall(r"<span class='.*'>(\d)</span>", priority)[0])
             self.ticket_id = int(re.findall(r"<a href='\S+'>\[.*-(\d+)\]</a>", number)[0])
@@ -207,7 +207,9 @@ class JutdaTicket():
             self.priority = int(re.findall(r"<th>Priority</th>\s*<td>(\d)\.\s*", s)[0])
             self.copies_to = re.findall(r"<th>Copies To</th>\s*<td>([^<>]*)<", s)[0]
             self.description = re.findall(r"<th colspan='2'>Description</th>\s*</tr>\s*<tr class='[^<>]+'>\s*<td colspan='2'>(.+?)</td>", s, re.DOTALL)[0]
+
             self.description = re.sub(r"<br\s*/>", r"\n", self.description)
+
             self.title = re.findall(r"<dd><input type='text' name='title' value='(.*)' /></dd>", s)[0]
             self.queue = find_queue(re.findall(r"<tr class='row_columnheads'><th colspan='2'>Queue: (.*)</th></tr>", s)[0])
             self.submitter_email = re.findall(r"<th>Submitter E-Mail</th>\s*<td>(.*)</td>", s)[0]

@@ -5,6 +5,8 @@ import datetime
 import abstracttask
 import jutdaapi
 import time
+import re
+import webbrowser
 
 class Task(abstracttask.Task): # should inherit from base abstract class, which has all att's common to both implementations
     """Represents a task"""
@@ -36,7 +38,7 @@ class Task(abstracttask.Task): # should inherit from base abstract class, which 
         We should be comparing tickets instead, since the question
         we're trying to answer is 'has the database representation
         changed', but this is more general."""
-        if not a.assigner == b.assigner:
+        if not a.assigner.title() == b.assigner.title():
             return False
         if not a.description == b.description:
             return False
@@ -69,10 +71,7 @@ class Task(abstracttask.Task): # should inherit from base abstract class, which 
         self._orig = deepcopy(self)
 
     def webedit(self):
-
-        webbrowser.open_new_tab()
-        raw_input('Hit Enter when done editing task in webbrowser')
-        updateTask(self)
+        webbrowser.open_new_tab(jutdaapi.SERVER+self.url+'edit/')
 
 def createTasks():
     """Returns a (hopefully full) list of task objects"""
@@ -80,7 +79,7 @@ def createTasks():
     # perfect) if list results is set to 1000 in jutda user settings
     tasks = []
     for ticket in tickets:
-        tasks.append(createTask(ticket))
+        tasks.append(ticketToTask(ticket))
     return tasks
 
 def detailedVersion(task):
@@ -91,30 +90,69 @@ def createDetailedTask(ticket_id):
     detailed_ticket = jutdaapi.get_detailed_ticket(ticket_id)
     if not detailed_ticket:
         raise ValueError('bad ticket id '+ticket_id)
-    return ticketToTask(ticket)
+    return ticketToTask(detailed_ticket)
 
 def ticketToTask(ticket):
     task = Task()
     task._ticket_id = ticket.ticket_id
+
+    # old version
+    #title = ticket.title
+    #last_for_index = max(title.rfind('for:'), title.rfind('For:'))
+    #task.assigner = 'no one'
+    #try:
+    #    _ = ticket.description
+    #    if not 'tasktrackermeta id' in ticket.description:
+    #        task.id = 't_'+str(ticket.ticket_id)
+    #except AttributeError:
+    #    pass
+    #assigner = None
+    #if last_for_index >= 0:
+    #    assigner = title[last_for_index+4:].title().strip()
+    #if assigner:
+    #    #instead we use custom html tag for this
+    #    task.assigner = assigner
+    #    task.name = ticket.title[:last_for_index]
+    #else:
+    #    task.name = ticket.title
+
     title = ticket.title
-    last_for_index = max(title.rfind('for:'), title.rfind('For:'))
-    if last_for_index >= 0:
-        assigner = title[last_for_index+4:].title().strip()
-    if assigner:
-        task.assigner = assigner
-        task.name = ticket.title[:last_for_index]
+    assigner_match = re.match(r"\((.*?)\) .*", title)
+    if assigner_match:
+        task.assigner = assigner_match.group(1).title()
+        task.name = re.sub(r"\(.*?\) ", "", title)
     else:
-        task.assigner = 'no one'
+        task.name = title
+
     try:
         task.description = ticket.description
-        task.followups = ticket.followups
+
+        id_match = re.search(r'&lt;tasktrackermeta id=&quot;(.*?)&quot;/&gt;', ticket.description)
+
+        # this doesn't work because it's not html, it's escaped html
+        #task.description = re.sub('<tasktrackermeta .*?/>', '', ticket.description)
+
+        # We're not using this because it's so ugly while the html is escaped, since
+        # we've got another option
+        #assigner_match = re.search(r'<tasktrackermeta assigner="(.*?)"/>', ticket.description)
+        #id_match = re.search(r'<tasktrackermeta id="(.*?)"/>', ticket.description)
+        task.description = re.sub(r'&lt;tasktrackermeta id=&quot;(.*?)&quot;/&gt;', '', ticket.description)
+        if id_match:
+            task.id = id_match.group(1)
+        #if assigner_match:
+        #    task.assigner = assigner_match.group(1).title()
     except AttributeError:
         task.description = None
+    try:
+        task.followups = ticket.followups
+    except AttributeError:
         task.followups = None
-    task.sumbitter_email = ticket.submitter_email
+    try:
+        task.submitter_email = ticket.submitter_email
+    except AttributeError:
+        task.submitter_emial = ''
     if not task.submitter_email:
         task.submitter_email = None
-    task.id = 't_'+str(ticket.ticket_id)
     task.isappointment = False
     status = ticket.status
     if 'resolved' in status or 'closed' in status:
@@ -123,12 +161,12 @@ def ticketToTask(ticket):
         task.iscompleted = False
     else:
         raise ValueError("Bad status read from ticket: "+status)
-    task.iscompleted = ticket.status
-    task.priority = (ticket.priority - 1) * 2
+    #task.priority = (ticket.priority - 1) * 2
+    task.priority = ticket.priority
     task.starttime = ticket.creation_date
     task.timespent = datetime.timedelta(0)
     task.whose = ticket.owner
-    if not task.whose:
+    if not task.whose or task.whose == 'Unassigned':
         task.whose = 'no one'
     task.url = ticket.url
     task._save_state_as_orig()
@@ -143,7 +181,7 @@ def updateTask(task):
         print 'task does not exist yet'
         return False
     # If so, check that things have actually changed (diff edited and orig)
-    database_task = ticketToTask(jutdaapi.get_detailed_ticket(task._ticket_id))
+    database_task = ticketToTask(detailed_ticket)
     if task._orig == task:
         return 'no changes to make'
         return True
@@ -151,12 +189,21 @@ def updateTask(task):
     if not database_task == task._orig:
         print 'task has changed in database; refresh task!'
         return False
-    priority = (task.priority + 2) / 2
-    if task.assigner != 'no one':
-        title = task.name + 'for: '+task.assigner
+    #priority = (task.priority + 2) / 2
+    priority = task.priority
+    if task.assigner not in  ['no one', 'Unassigned']:
+        title = '('+task.assigner.title()+') '+task.name
+        #if task.name[-1] == ' ':
+        #    title = task.name + 'for: '+task.assigner.title()
+        #else:
+        #    title = task.name + ' for: '+task.assigner.title()
     else:
         title = task.name
     description = task.description
+    #if task.assigner != 'no one':
+    #    description += '<tasktrackermeta assigner="'+task.assigner+'"/>'
+    if 't' not in task.id:
+        description += '<tasktrackermeta id="'+task.id+'"/>'
     return jutdaapi.edit_ticket(task._ticket_id, title=title, queue=None, submitter_email=None,
             description=description, priority=priority)
 
@@ -164,16 +211,24 @@ def deleteTask(task):
     """Deletes the task via the api"""
     return jutdaapi.delete_ticket(task._ticket_id, 'yep, i really want to do this')
 
-def newTask(name, description, assigner, priority=None, submitter_email=None, whose=None):
-    """Creates a new ticket in the database too"""
+def newTask(name, description, assigner, id=None, priority=None, submitter_email=None, whose=None):
+    """Creates a new ticket in the database too, return Ticket"""
     if whose:
         user_id = jutdaapi.find_user(whose)
         if not user_id:
             raise ValueError('bad whose assignment: '+str(whose))
-    title = name + ' for: '+assigner
+    #title = name + ' for: '+assigner.title()
+    # that was the old scheme
+    title = '('+assigner.title()+') '+name
+
     if priority != None:
-        priority = (priority + 2) / 2
+        #priority = (int(priority) + 2) / 2
+        priority = int(priority)
     RA_queue = 3
+    #if assigner != 'no one':
+    #    description += '<tasktrackermeta assigner="'+assigner+'"/>'
+    if isinstance(id, str):
+        description += '<tasktrackermeta id="'+id+'"/>'
     ticket_id = jutdaapi.create_ticket(RA_queue, title, description,
             priority=priority, submitter_email=submitter_email)
     # Is there a race condition here?  In this kind of database
@@ -187,14 +242,16 @@ def formatTask(task):
     raise NotImplementedError('some sort of nice text display')
 
 if __name__ == '__main__':
+    import pudb; pudb.set_trace()
     task = newTask('tomTestTask', "this is a task to test tom's jutda task api\n linebreaks included.",
             'Taskassigner')
     from pprint import pprint
     print('newtask:')
-    pprint(dir(task))
+    print task
+    print task.description
+    raw_input('')
     print updateTask(task)
     task.name = 'newnameof this task'
     print updateTask(task)
-    import pudb; pudb.set_trace()
     raw_input('hit return to delete the task')
     deleteTask(task)

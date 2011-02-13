@@ -15,7 +15,7 @@ SERVER = 'http://pnl-t75-1.bwh.harvard.edu:9000'
 
 class JutdaSession():
     """Keeps track of authentication data for screen scrapings"""
-    sort_choices = ['create', 'status', 'queue', 'title', 'priority', 'assigned_to']
+    sort_choices = ['created', 'status', 'queue', 'title', 'priority', 'assigned_to']
     status_dict = {'open' : 1, 'reopened' : 2, 'resolved' : 3, 'closed' : 4}
     def __init__(self):
         # build opener with HTTPCookieProcessor
@@ -48,7 +48,7 @@ class JutdaSession():
         owners: list of owner ids
         statuses: list of ['open', 'reopened', 'resolved', 'closed']
         queues: list of queue ids
-        keywords: list of words
+        keywords: space separated string of words
 
         """
         # input sanitization
@@ -172,7 +172,7 @@ def get_detailed_ticket(ticket_id):
     """Convenience function for JutdaSession().get_detailed_ticket()"""
     return JutdaSession().get_detailed_ticket(ticket_id)
 
-class JutdaTicket():
+class JutdaTicket(object):
     """Represents a ticket from the Jutda Helpdesk"""
     def __init__(self, tablescreenscrape=None, detailscreenscrape=None):
         if not (tablescreenscrape or detailscreenscrape):
@@ -237,8 +237,16 @@ class JutdaTicket():
             # not always there
             self.resolution = None
 
+    def display(self):
+        for att in [att for att in self.__dict__ if (not att.startswith('_') and not callable(self.__dict__[att]))]:
+            print att, self.__getattribute__(att)
+
     def __repr__(self):
-        return '<'+' '.join([self.title, self.owner, str(self.ticket_id), self.url])+'>'
+        if self.owner:
+            owner = self.owner
+        else:
+            owner = 'unassigned'
+        return '<'+' '.join([self.title, owner, str(self.ticket_id), self.url])+'>'
 
     def __cmp__(self, other):
         return self.priority - other.priority
@@ -329,7 +337,7 @@ def list_queues():
 def find_user(user):
     """Returns an a integer id that is the user's Task Tracker ID"""
     query = user
-    data = urllib.urlencode({"username" : query, "user" : USER, "password" : PASSWORD()})
+    data = urllib.urlencode({"username" : query, "user" : USER, "password" : PASSWORD})
     try:
         f = urllib2.urlopen(SERVER+"/api/find_user/", data)
     except urllib2.HTTPError:
@@ -340,23 +348,72 @@ def find_user(user):
     f.close()
     return int(s)
 
+def testAll():
+    testReadAndEdit()
+    testQueries()
+
+def testReadAndEdit():
+    """These tests are specific to the PNL Task Tracker - skip them if you aren't there."""
+    print 'running tests...'
+    assert find_user('tomb') == 12
+    assert not find_user('fred')
+    assert list_queues() == {u'INTRuST NLC': u'2', u'PNL RA': u'3'}
+    newticket_id = create_ticket(3, 'Jutdaapi test ticket', 'original test ticket descripion')
+    print 'newly created ticket has id:', newticket_id
+    try:
+        newticket = get_detailed_ticket(newticket_id)
+        assert newticket
+        print 'testing editing ticket title...'
+        edit_ticket(newticket_id, title='newtitle')
+        assert get_detailed_ticket(newticket_id).title == 'newtitle'
+        print 'testing editing ticket queue...'
+        edit_ticket(newticket_id, queue=2)
+        assert get_detailed_ticket(newticket_id).queue == u'2'
+        print 'testing editing ticket submitter_email...'
+        edit_ticket(newticket_id, submitter_email='thomasballinger@gmail.com')
+        assert get_detailed_ticket(newticket_id).submitter_email == 'thomasballinger@gmail.com'
+        print 'testing editing ticket description...'
+        edit_ticket(newticket_id, description='this is the new test ticket description')
+        assert get_detailed_ticket(newticket_id).description == u'this is the new test ticket description'
+        print 'testing editing ticket priority...'
+        edit_ticket(newticket_id, priority=5)
+        assert get_detailed_ticket(newticket_id).priority == 5
+    finally:
+        print 'running test cleanup'
+        print 'deleting ticket...', delete_ticket(newticket_id, 'yeah')
+    assert not get_detailed_ticket(newticket_id)
+    phoenix_ticket_id = create_ticket(3, 'another test ticket', 'should have same id as one previously created')
+    print 'deleting ticket...', delete_ticket(newticket_id, 'yeah')
+    assert newticket_id == phoenix_ticket_id
+    print 'all read and editing tests passed'
+    return True
+
+def testQueries():
+    print 'querying tickets...'
+    print 'default', get_tickets(); raw_input()
+    print 'sort by created', get_tickets(sort='created'); raw_input()
+    print 'sort by title', get_tickets(sort='title', sortreverse=True); raw_input()
+    print 'sort by queue', get_tickets(sort='queue'); raw_input()
+    print 'sort by priority', get_tickets(sort='priority'); raw_input()
+    print 'sort by owner', get_tickets(sort='priority'); raw_input()
+    print 'sort by priority', get_tickets(sort='priority'); raw_input()
+    print 'get by owner id', get_tickets(owners=[4, 5]); raw_input()
+    print 'get by status', get_tickets(statuses=['reopened', 'resolved']); raw_input()
+    print 'get by queue', get_tickets(queues=[3]); raw_input()
+    print 'get by keyword', get_tickets(keyword='fa fix'); raw_input()
+    print 'get by keyword in browser', get_tickets(keyword='fa fix', with_browser=True); raw_input()
+    sort_choices = ['created', 'status', 'queue', 'title', 'priority', 'assigned_to']
+
 if __name__ == '__main__':
-    #import pudb; pudb.set_trace()
-    #print find_user('tomb')
-    #print find_user('fred')
-    #print list_queues()
-    #newticket = create_ticket(u'3', 'Test task1 by tom for: Ryan', 'test text')
-    #print newticket
-    #print delete_ticket(newticket, 'yes, really')
-    #pass
-    #from pprint import pprint
-    #pprint(session.get_tickets())
-    #pprint(get_tickets(sort='title', sortreverse='on', queues=['3']))
-    #session = JutdaSession()
-    #session.edit_ticket(105, append_to_title='wet')
-    #edit_ticket(105, append_to_title='wet')
     #print get_tickets(statuses=['closed'])
-    ticket = get_detailed_ticket(148)
-    print ticket
-    desc = ticket.description
-    print desc
+    #ticket = get_detailed_ticket(148)
+    #print ticket
+    #desc = ticket.description
+    #print desc
+    #testAll()
+    #ticket = get_detailed_ticket(100)
+    #ticket.display()
+    #testAll()
+
+    testReadAndEdit()
+    testQueries()

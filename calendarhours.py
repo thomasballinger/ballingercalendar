@@ -49,10 +49,16 @@ class MeetingTask(abstracttask.Task):
     def __repr__(self):
         return '<MeetingTask '+self.name+' '+str(self.timespent)+'>'
 
-def get_hours_worked_on_all_tasks(ds1=None, ds2=None):
+def get_hours_worked_on_all_tasks(ds1=None, ds2=None, verbose=False):
     """Returns a dict of task ids as keys, timedeltas as values, and a list of meetingtasks.
 
-    the id 'meeting' may be present in the hours dict."""
+    the id 'meeting' may be present in the hours dict.
+    For some reason, Google calendar seems to return
+    events from outside the duration requested - for this reason
+    there's an additional filter in the code below. Because of this,
+    Overnight events will be missed by this method!!!
+    ToDo: split up such events and only report the portion
+    that falls during the queried period."""
     if bool(ds1) ^ bool(ds2):
         raise Exception('use both or neither datetime arguments')
     if not ds1:
@@ -76,10 +82,17 @@ def get_hours_worked_on_all_tasks(ds1=None, ds2=None):
         for when in event.when:
             start = google_cal_time_to_datetime(when.start_time)
             end =  google_cal_time_to_datetime(when.end_time)
+            if start < datetime(int(ds1[:4]), int(ds1[5:7]), int(ds1[8:10])):
+                continue
+            if end > datetime(int(ds2[:4]), int(ds2[5:7]), int(ds2[8:10])):
+                continue
             delta = end - start
             hours += delta
-            print event.title.text, start, end
-            print delta
+            if verbose:
+                print event.title.text, start, end
+                print delta
+        if delta == datetime.timedelta(0):
+            continue
         if task_id in hours_dict:
             hours_dict[task_id] += hours
         else:

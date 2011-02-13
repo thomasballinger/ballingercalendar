@@ -52,6 +52,7 @@ class EditTasksCLI(cmd.Cmd):
             arg = arg.replace('_',' ')
             l = [x for x in self.task_list if x.name == arg]
             if not l:
+                l = [x.name.replace('-','_').replace("'",'') for x in self.task_list if x.name.replace('-','_').replace("'",'') == arg]
                 print('no such task')
                 return
             self.selected_task = l[0]
@@ -63,10 +64,10 @@ class EditTasksCLI(cmd.Cmd):
 
     def complete_task(self, text, line, beginindex, endindex):
         if not text:
-            a = [x.name.replace(' ','_') for x in self.task_list]
+            a = [x.name.replace(' ','_').replace('-','_').replace("'",'') for x in self.task_list]
             return a
         else:
-            a = [x.name.replace(' ','_') for x in [t for t in self.task_list if text.lower() in t.name.replace(' ','_').lower()]]
+            a = [x.name.replace(' ','_').replace('-','_').replace("'",'') for x in [t for t in self.task_list if text.lower() in t.name.replace(' ','_').replace("'",'').lower()]]
             return a
 
     def do_rename(self,arg):

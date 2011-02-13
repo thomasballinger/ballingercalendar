@@ -12,6 +12,8 @@ import calendarhours as hours
 import cmd
 import pretty
 from pprint import pprint
+import auth
+(FULLPNLNAME,) = auth.get_authentication('fullpnlname')
 
 class EditTasksCLI(cmd.Cmd):
     def __init__(self):
@@ -58,6 +60,15 @@ class EditTasksCLI(cmd.Cmd):
         print('')
         return True
 
+    def do_getHoursWorked(self, arg):
+        if not arg: return False
+        print hours.get_hours_worked(arg[:len(arg)/2].strip(), arg[len(arg)/2:].strip())
+
+    def do_getHoursWorkedOnTasks(self, arg):
+        if not arg: return False
+        hours_dict, meetings = hours.get_hours_worked_on_all_tasks(arg[:len(arg)/2].strip(), arg[len(arg)/2:].strip())
+        print self.timedeltaToHoursString(sum(hours_dict.values()[1:], hours_dict.values()[0]))
+
     def do_prettyHours(self, arg):
         raise Exception("pretty needs to be more modular to allow jutdatasks")
         raise Exception("pretty needs to allow hardcoded meetings (move meeting constants to hours)")
@@ -72,16 +83,16 @@ class EditTasksCLI(cmd.Cmd):
 
     def do_task(self, arg):
         if arg:
-            arg = arg.replace('_',' ')
             l = [x for x in self.task_list if x.name == arg]
             if not l:
-                l = [x for x in self.task_list if x.name.strip() == arg.strip()]
+                l = [x for x in self.task_list if x.name.replace('-','_').replace("'",'').replace(' ','_').lower() == arg.lower()]
                 if not l:
                     print('no such task')
                     return
             self.selected_task = l[0]
             self.task_list.remove(self.selected_task)
             self.selected_task = jutdatask.createDetailedTask(self.selected_task._ticket_id)
+            self.task_list.append(self.selected_task)
             print(self.selected_task)
         elif self.selected_task:
             print(self.selected_task)
@@ -90,10 +101,10 @@ class EditTasksCLI(cmd.Cmd):
 
     def complete_task(self, text, line, beginindex, endindex):
         if not text:
-            a = [x.name.replace(' ','_') for x in self.task_list]
+            a = [x.name.replace(' ','_').replace('-','_').replace("'",'') for x in self.task_list]
             return a
         else:
-            a = [x.name.replace(' ','_') for x in [t for t in self.task_list if text.lower() in t.name.replace(' ','_').lower()]]
+            a = [x.name.replace(' ','_').replace('-','_').replace("'",'') for x in [t for t in self.task_list if text.lower() in t.name.replace(' ','_').replace("'",'').lower()]]
             return a
 
     def do_rename(self,arg):
@@ -161,6 +172,8 @@ class EditTasksCLI(cmd.Cmd):
         self.updateLocalTasklist()
 
     def do_whose(self, arg):
+        raise Exception('Tickets do not save this information, so it cannot we saved')
+        import pudb; pudb.set_trace()
         if not self.selected_task: print('choose a task first'); return
         if not arg:
             print 'whose:',self.selected_task.whose
@@ -198,10 +211,11 @@ class EditTasksCLI(cmd.Cmd):
         t = self.selected_task
         print(t.name)
         for (label,prop) in zip(
-        ['desc:','assigned by:','priority:','time spent','start time','is complete:'],
-        [t.description, t.assigner, t.priority, t.timespent, t.starttime, t.iscompleted]):
+        ['desc:','assigned by:','priority:','time spent','start time','is complete:', 'id'],
+        [t.description, t.assigner, t.priority, t.timespent, t.starttime, t.iscompleted, t.id]):
             if prop:
                 print label,prop
+        print t.id
 
     def do_removeTask(self, arg):
         if not self.selected_task: print 'select a task first'; return
@@ -250,7 +264,7 @@ class EditTasksCLI(cmd.Cmd):
         if arg:
             task_list = [t for t in self.task_list if not t.iscompleted and t.whose.lower()==arg.lower()]
         else:
-            task_list = [t for t in self.task_list if not t.iscompleted and t.whose.lower()=='thomas ballinger']
+            task_list = [t for t in self.task_list if not t.iscompleted and t.whose.lower()==FULLPNLNAME.lower()]
         if not task_list:
             print None
             return
@@ -291,29 +305,23 @@ class EditTasksCLI(cmd.Cmd):
         import pudb; pudb.set_trace()
 
     def do_updateTimeSpent(self, arg):
-        if not self.selected_task:
-            print 'select a task first'
-            return
-        self.selected_task.timespent = hours.get_hours_worked(self.selected_task.id)
+        if not self.selected_task: print 'select a task first'; return
+        self.selected_task.timespent = hours.get_hours_worked_on_single_task(self.selected_task.id)
         print self.selected_task.timespent
-        self.selected_task.put()
-        self.task_list = task.createTasks()
 
     def do_meeting(self, arg):
         title = raw_input("Meeting Name: ")
         description = raw_input("Description: ")
-        hours.clock_time('meeting', title=title, description=description)
+        hours.clock_meeting_time(title=title, description=description)
 
     def do_clockHours(self, arg):
-        if not self.selected_task:
-            print 'select a task first'
-            return
+        if not self.selected_task: print 'select a task first'; return
         if arg and len(arg.split()) % 2 == 0:
             hours.clock_time(
                     self.selected_task.id,
                     title=self.selected_task.name,
                     description=self.selected_task.description,
-                    start_datetime=parse.parseTimeInterval(' '.join(arg.split()[:len(arg.split()/2)])), 
+                    start_datetime=parse.parseTimeInterval(' '.join(arg.split()[:len(arg.split()/2)])),
                     end_datetime=parse.parseTimeInterval(' '.join(arg.split()[arg.split()/2:]))
             )
         else:
@@ -321,7 +329,6 @@ class EditTasksCLI(cmd.Cmd):
                     self.selected_task.id,
                     title=self.selected_task.name,
                     description=self.selected_task.description)
-
         print 'hours clocked'
 
     def do_clear(self, arg):

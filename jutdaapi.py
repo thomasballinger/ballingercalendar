@@ -10,11 +10,8 @@ import auth
 import json
 from dateutil import parser as dateutilparser
 
-USER = 'tomb'
+USER, PASSWORD = auth.get_authentication('pnluser', 'pnlpassword')
 SERVER = 'http://pnl-t75-1.bwh.harvard.edu:9000'
-def getPassword():
-    user, password = auth.get_authentication()
-    return password
 
 class JutdaSession():
     """Keeps track of authentication data for screen scrapings"""
@@ -32,7 +29,7 @@ class JutdaSession():
 
         # jutda helpdesk expects 'usersname' and 'password' as query params,
         # and a 'CSRFMiddlewareToken'
-        datadict = {'username': USER, 'password': getPassword()}
+        datadict = {'username': USER, 'password': PASSWORD}
         datadict[csrfmiddleware] = value
         p = urllib.urlencode(datadict)
 
@@ -64,11 +61,11 @@ class JutdaSession():
             if False in owners:
                 raise ValueError("Bad users choice: found False in "+users)
         for status in statuses[:]:
-            if status in status_dict.values():
+            if status in JutdaSession.status_dict.values():
                 pass
-            elif status in status_dict.keys():
+            elif status in JutdaSession.status_dict.keys():
                 statuses.remove(status)
-                statuses.append(status_dict[status])
+                statuses.append(JutdaSession.status_dict[status])
             else:
                 raise ValueError("Bad status choice: "+status)
         try:
@@ -99,6 +96,8 @@ class JutdaSession():
         f = self.opener.open(SERVER+"/tickets/?"+ data)
         s = f.read()
         f.close()
+        if re.search(r"<h2>Login</h2>", s):
+            raise Exception("Login Failed")
 
         # TODO: move this to JutdaTicket code class method?
         regexcode = (r"<tr class='row_\w+ row_hover'>\s*" +
@@ -181,6 +180,8 @@ class JutdaTicket():
         if tablescreenscrape:
             (number, _, priority, title, queue, status, created, owner) = tablescreenscrape
             ((self.url, self.title,),) = re.findall(r"<a\s*href='(\S+)'>(.+)</a>", title)
+            self.title = re.sub(r"<br\s*/>", r"\n", self.title)
+            self.title = re.sub(r"&#39;", r"'", self.title)
             self.owner = owner
             self.queue = queue
             self.status = status.lower()
@@ -209,13 +210,18 @@ class JutdaTicket():
             self.description = re.findall(r"<th colspan='2'>Description</th>\s*</tr>\s*<tr class='[^<>]+'>\s*<td colspan='2'>(.+?)</td>", s, re.DOTALL)[0]
 
             self.description = re.sub(r"<br\s*/>", r"\n", self.description)
+            self.description = re.sub(r"&#39;", r"'", self.description)
 
             self.title = re.findall(r"<dd><input type='text' name='title' value='(.*)' /></dd>", s)[0]
+            self.title = re.sub(r"<br\s*/>", r"\n", self.title)
+            self.title = re.sub(r"&#39;", r"'", self.title)
             self.queue = find_queue(re.findall(r"<tr class='row_columnheads'><th colspan='2'>Queue: (.*)</th></tr>", s)[0])
             self.submitter_email = re.findall(r"<th>Submitter E-Mail</th>\s*<td>(.*)</td>", s)[0]
             self.url = "/tickets/"+str(self.ticket_id)
             if re.search(r"<input type='radio' name='new_status' value='1' id='st_open' checked='checked'>", s):
                 self.status='open'
+            if re.search(r"<input type='radio' name='new_status' value='2' id='st_reopened' checked='checked'>", s):
+                self.status='reopened'
             elif re.search(r"<input type='radio' name='new_status' value='3' id='st_resolved' checked='checked'>", s):
                 self.status='resolved'
             elif re.search(r"<input type='radio' name='new_status' value='4' id='st_closed' checked='checked'>", s):
@@ -251,7 +257,7 @@ def find_queue(queue):
 # the methods below use the jutdahelpdesk api very directly
 def create_ticket(queue, title, body, submitter_email=None, assigned_to=None, priority=None):
     """Returns the ID of a newly created task"""
-    datadict = {"queue" : queue, "body" : body, "title" : title, "user" : USER, "password" : getPassword()}
+    datadict = {"queue" : queue, "body" : body, "title" : title, "user" : USER, "password" : PASSWORD}
     if submitter_email:
         datadict["submitter_email"] = submitter_email
     if assigned_to:
@@ -266,7 +272,7 @@ def create_ticket(queue, title, body, submitter_email=None, assigned_to=None, pr
 
 def delete_ticket(ticket_id, confirm):
     """Entirely deletes a ticket"""
-    datadict = {"ticket" : ticket_id, "confirm" : confirm, 'user' : USER, 'password' : getPassword()}
+    datadict = {"ticket" : ticket_id, "confirm" : confirm, 'user' : USER, 'password' : PASSWORD}
     data = urllib.urlencode(datadict)
     f = urllib2.urlopen(SERVER+"/api/delete_ticket/", data)
     s = f.read()
@@ -285,7 +291,7 @@ def unhold_ticket(ticket_id):
 
 def add_followup(ticket_id, message, public=None):
     """Adds a followup """
-    datadict = {"ticket" : ticket_id,  "message" : message, "user" : USER, "password" : getPassword()}
+    datadict = {"ticket" : ticket_id,  "message" : message, "user" : USER, "password" : PASSWORD}
     if public:
         datadict["public"] = public
     data = urllib.urlencode(datadict)
@@ -308,7 +314,7 @@ def resolve(ticket_id, resolution):
 
 def list_queues():
     """Returns a dictionary of queue IDs, with names as keys"""
-    data = urllib.urlencode({"user" : USER, "password" : getPassword()})
+    data = urllib.urlencode({"user" : USER, "password" : PASSWORD})
     f = urllib2.urlopen(SERVER+"/api/list_queues/", data)
     s = f.read()
     if f.code != 200:
@@ -323,7 +329,7 @@ def list_queues():
 def find_user(user):
     """Returns an a integer id that is the user's Task Tracker ID"""
     query = user
-    data = urllib.urlencode({"username" : query, "user" : USER, "password" : getPassword()})
+    data = urllib.urlencode({"username" : query, "user" : USER, "password" : PASSWORD()})
     try:
         f = urllib2.urlopen(SERVER+"/api/find_user/", data)
     except urllib2.HTTPError:
@@ -348,4 +354,9 @@ if __name__ == '__main__':
     #pprint(get_tickets(sort='title', sortreverse='on', queues=['3']))
     #session = JutdaSession()
     #session.edit_ticket(105, append_to_title='wet')
-    edit_ticket(105, append_to_title='wet')
+    #edit_ticket(105, append_to_title='wet')
+    #print get_tickets(statuses=['closed'])
+    ticket = get_detailed_ticket(148)
+    print ticket
+    desc = ticket.description
+    print desc

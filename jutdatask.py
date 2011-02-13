@@ -71,7 +71,7 @@ class Task(abstracttask.Task): # should inherit from base abstract class, which 
         self._orig = deepcopy(self)
 
     def webedit(self):
-        webbrowser.open_new_tab(jutdaapi.SERVER+self.url+'edit/')
+        webbrowser.open_new_tab(jutdaapi.SERVER+self.url+'/edit/')
 
 def createTasks():
     """Returns a (hopefully full) list of task objects"""
@@ -96,26 +96,6 @@ def ticketToTask(ticket):
     task = Task()
     task._ticket_id = ticket.ticket_id
 
-    # old version
-    #title = ticket.title
-    #last_for_index = max(title.rfind('for:'), title.rfind('For:'))
-    #task.assigner = 'no one'
-    #try:
-    #    _ = ticket.description
-    #    if not 'tasktrackermeta id' in ticket.description:
-    #        task.id = 't_'+str(ticket.ticket_id)
-    #except AttributeError:
-    #    pass
-    #assigner = None
-    #if last_for_index >= 0:
-    #    assigner = title[last_for_index+4:].title().strip()
-    #if assigner:
-    #    #instead we use custom html tag for this
-    #    task.assigner = assigner
-    #    task.name = ticket.title[:last_for_index]
-    #else:
-    #    task.name = ticket.title
-
     title = ticket.title
     assigner_match = re.match(r"\((.*?)\) .*", title)
     if assigner_match:
@@ -123,24 +103,13 @@ def ticketToTask(ticket):
         task.name = re.sub(r"\(.*?\) ", "", title)
     else:
         task.name = title
-
     try:
         task.description = ticket.description
-
+        task.id = 't_'+str(ticket.ticket_id)
         id_match = re.search(r'&lt;tasktrackermeta id=&quot;(.*?)&quot;/&gt;', ticket.description)
-
-        # this doesn't work because it's not html, it's escaped html
-        #task.description = re.sub('<tasktrackermeta .*?/>', '', ticket.description)
-
-        # We're not using this because it's so ugly while the html is escaped, since
-        # we've got another option
-        #assigner_match = re.search(r'<tasktrackermeta assigner="(.*?)"/>', ticket.description)
-        #id_match = re.search(r'<tasktrackermeta id="(.*?)"/>', ticket.description)
         task.description = re.sub(r'&lt;tasktrackermeta id=&quot;(.*?)&quot;/&gt;', '', ticket.description)
         if id_match:
             task.id = id_match.group(1)
-        #if assigner_match:
-        #    task.assigner = assigner_match.group(1).title()
     except AttributeError:
         task.description = None
     try:
@@ -150,7 +119,7 @@ def ticketToTask(ticket):
     try:
         task.submitter_email = ticket.submitter_email
     except AttributeError:
-        task.submitter_emial = ''
+        task.submitter_email = ''
     if not task.submitter_email:
         task.submitter_email = None
     task.isappointment = False

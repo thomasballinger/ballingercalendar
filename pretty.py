@@ -43,9 +43,6 @@ def showWeekly(ds1, ds2, filename=None):
     task_list = task.createTasks()
     totalHours = datetime.timedelta(0)
     for t in task_list:
-        t.timeToGo = (t.estimatedtime - t.timespent)
-        t.timeTillDue = (t.duedate - datetime.datetime.now())
-    for t in task_list:
         t.weekHours = hours.get_week_hours(t.id, ds1, ds2)
         totalHours += t.weekHours
     weekList = [x for x in task_list if x.weekHours > datetime.timedelta(0)]

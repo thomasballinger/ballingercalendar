@@ -3,7 +3,6 @@
 
 import webbrowser
 import re
-import datetime
 import urllib2
 import urllib
 import auth

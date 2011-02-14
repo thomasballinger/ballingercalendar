@@ -67,8 +67,6 @@ def get_hours_worked_on_all_tasks(ds1=None, ds2=None, verbose=False):
         'default', 'private', 'full', ID_STRING_TASK)
     query.start_min = ds1
     query.start_max = ds2
-    print ds1, ds2
-    print 'inclusive, exclusive'
     query.max_results = 1000 # could cause scaling problems for ~> 100 days or so
     cal_client = get_client()
     feed = cal_client.CalendarQuery(query)
@@ -82,9 +80,9 @@ def get_hours_worked_on_all_tasks(ds1=None, ds2=None, verbose=False):
         for when in event.when:
             start = google_cal_time_to_datetime(when.start_time)
             end =  google_cal_time_to_datetime(when.end_time)
-            if start < datetime(int(ds1[:4]), int(ds1[5:7]), int(ds1[8:10])):
+            if start < datetime.datetime(int(ds1[:4]), int(ds1[5:7]), int(ds1[8:10])):
                 continue
-            if end > datetime(int(ds2[:4]), int(ds2[5:7]), int(ds2[8:10])):
+            if end > datetime.datetime(int(ds2[:4]), int(ds2[5:7]), int(ds2[8:10])):
                 continue
             delta = end - start
             hours += delta

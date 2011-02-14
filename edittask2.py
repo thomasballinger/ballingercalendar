@@ -23,6 +23,10 @@ class EditTasksCLI(cmd.Cmd):
         self.updateLocalTasklist()
 
     def do_updateLocalTasklist(self, arg):
+        """Updates the local task list from the database tasks.
+
+        The local list of tasks is automatically updated after most commands,
+        but this command causes an immediate update."""
         self.updateLocalTasklist()
 
     def updateLocalTasklist(self, select_task=None):
@@ -44,6 +48,7 @@ class EditTasksCLI(cmd.Cmd):
             self.selected_task = None
 
     def do_webEdit(self, arg):
+        """Opens a webpage allowing edits of the task at a closer level to the database."""
         if not self.selected_task: print('choose a task first'); return
         self.selected_task.webedit()
         raw_input('Hit Enter when done editing task in webbrowser')
@@ -51,6 +56,7 @@ class EditTasksCLI(cmd.Cmd):
 
 
     def do_exit(self, arg):
+        """Exits this client program."""
         sys.exit(0)
 
     def do_quit(self, arg):
@@ -221,11 +227,16 @@ class EditTasksCLI(cmd.Cmd):
         if not self.selected_task: print 'select a task first'; return
         check = parse.parseBoolean(raw_input('really delete task'+self.selected_task.__repr__()+'?\n'))
         if check:
-            task.deleteTask(self.selected_task)
+            result = task.deleteTask(self.selected_task)
             self.selected_task = None
-            print 'task deleted'
+            print result
+            if result:
+                print 'task deleted'
+            else:
+                print 'ERROR: Task NOT deleted'
         else:
-            print 'not deleted'
+            print 'deletion canceled'
+        self.updateLocalTasklist()
 
     def do_listCompleted(self, arg):
         pprint([t for t in self.task_list if t.iscompleted])
@@ -296,10 +307,6 @@ class EditTasksCLI(cmd.Cmd):
         m = int(s / 60 % 60)
         return str(h)+':'+('00'+str(m))[-2:]
 
-    def do_workedOn(self, arg):
-        "doesn't do anything yet"
-        return parse.parseTimeInterval(arg)
-
     def do_debug(self, arg):
         "enters debug mode"
         import pudb; pudb.set_trace()
@@ -334,9 +341,6 @@ class EditTasksCLI(cmd.Cmd):
     def do_clear(self, arg):
         for i in range(100):
             print ''
-
-    def do_hours(self, arg):
-        pprint([(t.name, t.timespent) for t in self.task_list])
 
 if __name__ == '__main__':
     cli = EditTasksCLI()

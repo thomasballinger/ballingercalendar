@@ -15,7 +15,7 @@ import webbrowser
 def getcaptcha(service):
         try:
                 service.ProgrammaticLogin()
-                print "I just logged in successfully...?"
+                #print "I just logged in successfully...?"
         except gdata.service.CaptchaRequired:
                 captcha_token = service._GetCaptchaToken()
                 url = service._GetCaptchaURL()

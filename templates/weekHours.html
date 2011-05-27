@@ -72,8 +72,6 @@
                                 <br>Total Time Spent on Task: {{td2jh(task.timespent)}}
                             {% if not task.iscompleted %}
                                 <br>Time Spent So Far: {{td2jh(task.timespent)}}
-                                <br>Due in: {{td2d(task.timeTillDue)}}
-                                <br>Estimated Time Left: {{td2h(task.timeToGo)}}
                             {% endif %}
                             {% if task.iscompleted %}
                                 <br><em>Task Completed</em>

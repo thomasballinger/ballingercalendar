@@ -76,8 +76,8 @@ class EditTasksCLI(cmd.Cmd):
         print self.timedeltaToHoursString(sum(hours_dict.values()[1:], hours_dict.values()[0]))
 
     def do_prettyHours(self, arg):
-        raise Exception("pretty needs to be more modular to allow jutdatasks")
-        raise Exception("pretty needs to allow hardcoded meetings (move meeting constants to hours)")
+        #raise Exception("pretty needs to be more modular to allow jutdatasks")
+        #raise Exception("pretty needs to allow hardcoded meetings (move meeting constants to hours)")
         if not arg:
             return False
         splitargs = arg.split()

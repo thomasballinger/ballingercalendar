@@ -16,6 +16,7 @@ import atom.service
 import gdata.calendar
 import atom
 import auth
+import captcha
 
 (EMAIL, PASSWORD) = auth.get_authentication('gmailaddress', 'gmailpassword')
 ID_STRING_TASK  = 'qyvztaskqyvz'
@@ -24,15 +25,23 @@ ID_STRING_BACK  = 'qyvz'
 
 MEETING_ID = 'meeting'
 
+THE_CLIENT = None
+
 def get_client():
     """Returns a local authenticated client for gdata stuff"""
     # Add a way to get a web-type client
-    cal_client = gdata.calendar.service.CalendarService()
-    cal_client.email = EMAIL
-    cal_client.password = PASSWORD
-    cal_client.source = 'ballingercalendar local app'
-    cal_client.ProgrammaticLogin()
-    return cal_client
+    global THE_CLIENT
+    if THE_CLIENT:
+        return THE_CLIENT
+    else:
+        cal_client = gdata.calendar.service.CalendarService()
+        cal_client.email = EMAIL
+        cal_client.password = PASSWORD
+        cal_client.source = 'ballingercalendar local app'
+        captcha.getcaptcha(cal_client)
+        #cal_client.ProgrammaticLogin()
+        THE_CLIENT = cal_client
+        return cal_client
 
 class MeetingTask(abstracttask.Task):
     """Task-like object which is only recorded in the hours database"""
@@ -116,6 +125,9 @@ def test_search(text):
     feed = cal_client.CalendarQuery(query)
     for event in feed.entry:
         print event.title.text
+
+def get_week_hours(*args, **kwargs):
+    return get_hours_worked_on_single_task(*args, **kwargs)
 
 def get_hours_worked_on_single_task(task_id, ds1=None, ds2=None):
     """Returns just a timedelta for hours worked in a time period or ever on a task"""
